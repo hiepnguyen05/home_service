@@ -9,7 +9,7 @@ module.exports = {
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
     dialect: 'mysql',
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    logging: false,
   },
   test: {
     username: process.env.DB_USER,
@@ -30,7 +30,7 @@ module.exports = {
 };
 
 // Cấu hình cho kết nối trực tiếp
-const { Sequelize } = require('sequelize');
+const { Sequelize, Op } = require('sequelize');
 const sequelize = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USER,
@@ -39,7 +39,7 @@ const sequelize = new Sequelize(
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
     dialect: 'mysql',
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    logging: false,
     pool: {
       max: 5,
       min: 0,
@@ -53,18 +53,19 @@ const sequelize = new Sequelize(
 const connectDB = async () => {
   try {
     await sequelize.authenticate();
-    console.log('Kết nối database thành công!');
-    
+    console.log('Đã kết nối đến cơ sở dữ liệu thành công!');
+
     // Đồng bộ hóa các model (chỉ dùng trong development)
     if (process.env.NODE_ENV === 'development') {
       await sequelize.sync({ alter: true });
-      console.log('Đồng bộ hóa database thành công!');
+      console.log('Cơ sở dữ liệu đã được đồng bộ hóa thành công!');
     }
   } catch (error) {
-    console.error('Không thể kết nối đến database:', error);
+    console.error('Không thể kết nối đến cơ sở dữ liệu:', error.message);
     process.exit(1);
   }
 };
 
 module.exports.sequelize = sequelize;
+module.exports.Op = Op;
 module.exports.connectDB = connectDB;
