@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('bookings', {
+  return sequelize.define('Bookings', {
     id: {
       autoIncrement: true,
       type: DataTypes.BIGINT.UNSIGNED,
@@ -107,6 +107,14 @@ module.exports = function(sequelize, DataTypes) {
         ]
       },
       {
+        name: "idx_date_status",
+        using: "BTREE",
+        fields: [
+          { name: "scheduled_at" },
+          { name: "status" },
+        ]
+      },
+      {
         name: "customer_id",
         using: "BTREE",
         fields: [
@@ -125,14 +133,6 @@ module.exports = function(sequelize, DataTypes) {
         using: "BTREE",
         fields: [
           { name: "service_id" },
-        ]
-      },
-      {
-        name: "idx_date_status",
-        using: "BTREE",
-        fields: [
-          { name: "scheduled_at" },
-          { name: "status" },
         ]
       },
     ]
