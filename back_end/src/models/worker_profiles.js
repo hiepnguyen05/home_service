@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('WorkerProfiles', {
+  return sequelize.define('worker_profiles', {
     user_id: {
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,

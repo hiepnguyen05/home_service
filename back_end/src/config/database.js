@@ -31,8 +31,6 @@ module.exports = {
 
 // Cấu hình cho kết nối trực tiếp
 const { Sequelize, Op } = require('sequelize');
-const initModels = require('../models/init-models');
-
 const sequelize = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USER,
@@ -51,15 +49,17 @@ const sequelize = new Sequelize(
   }
 );
 
-// Khởi tạo tất cả models
-const models = initModels(sequelize);
-
 // Kiểm tra kết nối
 const connectDB = async () => {
   try {
     await sequelize.authenticate();
     console.log('Đã kết nối đến cơ sở dữ liệu thành công!');
-    console.log('Đã khởi tạo tất cả models từ database!');
+
+    // Đồng bộ hóa các model (chỉ dùng trong development)
+    if (process.env.NODE_ENV === 'development') {
+      await sequelize.sync({ alter: true });
+      console.log('Cơ sở dữ liệu đã được đồng bộ hóa thành công!');
+    }
   } catch (error) {
     console.error('Không thể kết nối đến cơ sở dữ liệu:', error.message);
     process.exit(1);
@@ -67,6 +67,5 @@ const connectDB = async () => {
 };
 
 module.exports.sequelize = sequelize;
-module.exports.models = models;
 module.exports.Op = Op;
 module.exports.connectDB = connectDB;
