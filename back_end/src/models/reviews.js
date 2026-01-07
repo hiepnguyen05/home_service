@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('Reviews', {
+  return sequelize.define('reviews', {
     id: {
       autoIncrement: true,
       type: DataTypes.BIGINT.UNSIGNED,
@@ -14,7 +14,7 @@ module.exports = function(sequelize, DataTypes) {
         model: 'bookings',
         key: 'id'
       },
-      unique: "reviews_ibfk_199"
+      unique: "reviews_ibfk_1"
     },
     customer_id: {
       type: DataTypes.BIGINT.UNSIGNED,

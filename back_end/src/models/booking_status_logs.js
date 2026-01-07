@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('BookingStatusLogs', {
+  return sequelize.define('booking_status_logs', {
     id: {
       autoIncrement: true,
       type: DataTypes.BIGINT.UNSIGNED,

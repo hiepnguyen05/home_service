@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('SystemSettings', {
+  return sequelize.define('system_settings', {
     key: {
       type: DataTypes.STRING(50),
       allowNull: false,
