@@ -1,6 +1,10 @@
 import 'dart:convert';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_response.dart';
+<<<<<<< HEAD
+=======
+import '../../../../core/network/auth_response.dart';
+>>>>>>> origin/feature/account-management
 import '../models/login_request.dart';
 import '../models/register_request.dart';
 import '../models/user_model.dart';

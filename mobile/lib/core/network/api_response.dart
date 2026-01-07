@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 import '../../features/auth/data/models/user_model.dart';
 
+=======
+>>>>>>> origin/feature/account-management
 /// Cấu trúc phản hồi chung từ API
 class ApiResponse<T> {
   final bool success;
@@ -23,6 +26,7 @@ class ApiResponse<T> {
       errors: json['errors'] != null ? List<String>.from(json['errors']) : null,
     );
   }
+<<<<<<< HEAD
 }
 
 /// Phản hồi từ API xác thực (đăng nhập/đăng ký)
@@ -42,4 +46,6 @@ class AuthResponse {
       token: json['token'],
     );
   }
+=======
+>>>>>>> origin/feature/account-management
 }

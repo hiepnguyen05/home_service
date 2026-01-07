@@ -8,6 +8,10 @@ import '../../../auth/data/models/user_model.dart';
 import '../models/address_model.dart';
 import '../models/profile_update_request.dart';
 import '../models/address_update_request.dart';
+<<<<<<< HEAD
+=======
+import '../models/profile_response.dart';
+>>>>>>> origin/feature/account-management
 
 /// Service xử lý API profile
 class ProfileApiService {
@@ -292,6 +296,7 @@ class ProfileApiService {
       );
     }
   }
+<<<<<<< HEAD
 }
 
 /// Response từ API profile
@@ -303,4 +308,6 @@ class ProfileResponse {
     required this.user,
     required this.addresses,
   });
+=======
+>>>>>>> origin/feature/account-management
 }
