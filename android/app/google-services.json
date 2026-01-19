@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "272138338916",
+    "project_id": "homeservice-a4290",
+    "storage_bucket": "homeservice-a4290.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:272138338916:android:a88a697e7802c99c475571",
+        "android_client_info": {
+          "package_name": "com.example.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAP7EKlHYIznBm4XZIvwdp3UQ02-WENHEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
