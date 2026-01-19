@@ -1,17 +1,12 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:geolocator/geolocator.dart';
+import 'dart:io';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/app_routes.dart';
-import '../../../../core/widgets/app_dialog.dart';
-import '../../../../core/services/location_service.dart';
+import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/services/cloudinary_service.dart';
 import '../../../auth/viewmodel/auth_viewmodel.dart';
-import '../../viewmodel/profile_viewmodel.dart';
-import '../widgets/profile_header.dart';
-import '../widgets/profile_menu_item.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -21,54 +16,67 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _fullNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
+
+  bool _isEditing = false;
+  File? _selectedImage;
+
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    _initializeControllers();
   }
 
-  void _loadProfile() {
+  void _initializeControllers() {
     final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
-    final profileViewModel = Provider.of<ProfileViewModel>(context, listen: false);
-    
-    if (authViewModel.token != null) {
-      profileViewModel.loadProfile(authViewModel.token!);
+    final user = authViewModel.currentUser;
+    if (user != null) {
+      _fullNameController.text = user.fullName;
+      _phoneController.text = user.phone;
     }
+  }
+
+  @override
+  void dispose() {
+    _fullNameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text(
           'Hồ sơ cá nhân',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppColors.black,
+            color: Colors.black,
           ),
         ),
-        backgroundColor: AppColors.white,
+        backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        automaticallyImplyLeading: false, // Bỏ nút back vì nằm trong bottom nav
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      body: Consumer2<AuthViewModel, ProfileViewModel>(
-        builder: (context, authViewModel, profileViewModel, child) {
-          if (profileViewModel.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-              ),
-            );
-          }
+      body: Consumer<AuthViewModel>(
+        builder: (context, authViewModel, child) {
+          final user = authViewModel.currentUser;
 
-          final user = profileViewModel.currentUser ?? authViewModel.currentUser;
-          
           if (user == null) {
             return const Center(
-              child: Text('Không thể tải thông tin người dùng'),
+              child: Text(
+                'Không có thông tin người dùng',
+                style: TextStyle(fontSize: 16),
+              ),
             );
           }
 
@@ -76,69 +84,213 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               children: [
                 // Header với avatar và thông tin cơ bản
-                ProfileHeader(
-                  user: user,
-                  onEditPressed: () => _showEditProfileDialog(context),
-                  onAvatarPressed: () => _showAvatarOptions(context),
-                ),
-                
-                const SizedBox(height: AppSizes.spacingLarge),
-                
-                // Menu items
                 Container(
-                  color: AppColors.white,
+                  width: double.infinity,
+                  color: Colors.white,
+                  padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
-                      ProfileMenuItem(
-                        icon: Icons.location_on,
-                        iconColor: AppColors.primary,
-                        title: 'Quản lý địa chỉ',
-                        subtitle: _getAddressSubtitle(profileViewModel),
-                        onTap: () => _showAddressDialog(context),
+                      // Avatar
+                      Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundColor: const Color(0xFFE8B4A0),
+                            backgroundImage: _selectedImage != null
+                                ? FileImage(_selectedImage!)
+                                : (user.avatarUrl != null
+                                          ? NetworkImage(user.avatarUrl!)
+                                          : null)
+                                      as ImageProvider?,
+                            child:
+                                _selectedImage == null && user.avatarUrl == null
+                                ? const Icon(
+                                    Icons.person,
+                                    size: 50,
+                                    color: Colors.white,
+                                  )
+                                : null,
+                          ),
+                          if (_isEditing)
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: GestureDetector(
+                                onTap: _pickImage,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                      const Divider(height: 1, color: AppColors.borderLight),
-                      
-                      ProfileMenuItem(
-                        icon: Icons.payment,
-                        iconColor: AppColors.green,
-                        title: 'Phương thức thanh toán',
-                        onTap: () => _showComingSoon(context, 'Phương thức thanh toán'),
-                      ),
-                      const Divider(height: 1, color: AppColors.borderLight),
-                      
-                      ProfileMenuItem(
-                        icon: Icons.notifications,
-                        iconColor: AppColors.orange,
-                        title: 'Cài đặt thông báo',
-                        onTap: () => _showComingSoon(context, 'Cài đặt thông báo'),
-                      ),
-                      const Divider(height: 1, color: AppColors.borderLight),
-                      
-                      ProfileMenuItem(
-                        icon: Icons.help_center,
-                        iconColor: Colors.purple,
-                        title: 'Trung tâm hỗ trợ',
-                        onTap: () => _showComingSoon(context, 'Trung tâm hỗ trợ'),
+
+                      const SizedBox(height: 16),
+
+                      // Tên và số điện thoại
+                      if (_isEditing) ...[
+                        Form(
+                          key: _formKey,
+                          child: Column(
+                            children: [
+                              AppTextField(
+                                controller: _fullNameController,
+                                hint: 'Họ và tên',
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Vui lòng nhập họ và tên';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              AppTextField(
+                                controller: _phoneController,
+                                hint: 'Số điện thoại',
+                                keyboardType: TextInputType.phone,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Vui lòng nhập số điện thoại';
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else ...[
+                        Text(
+                          user.fullName,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          user.phone,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 20),
+
+                      // Nút chỉnh sửa/lưu
+                      Container(
+                        width: double.infinity,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: TextButton.icon(
+                          onPressed: _isEditing ? _saveProfile : _toggleEdit,
+                          icon: Icon(
+                            _isEditing ? Icons.save : Icons.edit,
+                            color: Colors.black,
+                            size: 20,
+                          ),
+                          label: Text(
+                            _isEditing ? 'Lưu thay đổi' : 'Chỉnh sửa',
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
-                
-                const SizedBox(height: AppSizes.spacingLarge),
-                
-                // Nút đăng xuất
+
+                const SizedBox(height: 16),
+
+                // Menu items
                 Container(
-                  color: AppColors.white,
-                  child: ProfileMenuItem(
-                    icon: Icons.logout,
-                    iconColor: AppColors.red,
-                    title: 'Đăng xuất',
-                    titleColor: AppColors.red,
-                    onTap: () => _showLogoutConfirmation(context),
+                  color: Colors.white,
+                  child: Column(
+                    children: [
+                      _buildMenuItem(
+                        icon: Icons.location_on,
+                        iconColor: Colors.blue,
+                        title: 'Quản lý địa chỉ',
+                        onTap: () {
+                          Navigator.pushNamed(context, AppRoutes.addressList);
+                        },
+                      ),
+                      _buildDivider(),
+                      _buildMenuItem(
+                        icon: Icons.credit_card,
+                        iconColor: Colors.green,
+                        title: 'Phương thức thanh toán',
+                        onTap: () {
+                          // TODO: Navigate to payment methods
+                        },
+                      ),
+                      _buildDivider(),
+                      _buildMenuItem(
+                        icon: Icons.notifications,
+                        iconColor: Colors.orange,
+                        title: 'Cài đặt thông báo',
+                        onTap: () {
+                          // TODO: Navigate to notification settings
+                        },
+                      ),
+                      _buildDivider(),
+                      _buildMenuItem(
+                        icon: Icons.help_center,
+                        iconColor: Colors.purple,
+                        title: 'Trung tâm hỗ trợ',
+                        onTap: () {
+                          // TODO: Navigate to help center
+                        },
+                      ),
+                    ],
                   ),
                 ),
-                
-                const SizedBox(height: AppSizes.spacingXLarge),
+
+                const SizedBox(height: 32),
+
+                // Nút đăng xuất
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  child: TextButton.icon(
+                    onPressed: () => _handleLogout(context, authViewModel),
+                    icon: const Icon(Icons.logout, color: Colors.red),
+                    label: const Text(
+                      'Đăng xuất',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.red.withValues(alpha: 0.1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 32),
               ],
             ),
           );
@@ -147,767 +299,287 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  String _getAddressSubtitle(ProfileViewModel profileViewModel) {
-    final defaultAddress = profileViewModel.defaultAddress;
-    if (defaultAddress != null) {
-      return defaultAddress.address;
-    }
-    return 'Chưa có địa chỉ mặc định';
+  Widget _buildMenuItem({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: iconColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: iconColor, size: 20),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+      ),
+      trailing: const Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: Colors.grey,
+      ),
+      onTap: onTap,
+    );
   }
 
-  void _showEditProfileDialog(BuildContext context) {
-    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
-    final profileViewModel = Provider.of<ProfileViewModel>(context, listen: false);
-    final user = profileViewModel.currentUser ?? authViewModel.currentUser;
-    
-    if (user == null) return;
+  Widget _buildDivider() {
+    return Divider(
+      height: 1,
+      thickness: 1,
+      color: Colors.grey[200],
+      indent: 60,
+    );
+  }
 
-    final TextEditingController nameController = TextEditingController(text: user.fullName);
-    
+  void _toggleEdit() {
+    setState(() {
+      _isEditing = !_isEditing;
+      if (!_isEditing) {
+        // Reset controllers if canceling edit
+        _initializeControllers();
+        _selectedImage = null;
+      }
+    });
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      // Hiển thị dialog chọn nguồn ảnh
+      final ImageSource? source = await showDialog<ImageSource>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Chọn ảnh đại diện'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: const Text('Chụp ảnh'),
+                  onTap: () => Navigator.of(context).pop(ImageSource.camera),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library),
+                  title: const Text('Chọn từ thư viện'),
+                  onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+
+      if (source != null) {
+        final XFile? image = await _picker.pickImage(
+          source: source,
+          maxWidth: 512,
+          maxHeight: 512,
+          imageQuality: 80,
+        );
+
+        if (image != null) {
+          setState(() {
+            _selectedImage = File(image.path);
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi chọn ảnh: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+
+    // Hiển thị loading
     showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      String? avatarUrl;
+
+      // Upload ảnh nếu có chọn ảnh mới
+      if (_selectedImage != null) {
+        print('[PROFILE] Đang upload ảnh avatar...');
+        
+        // Debug Cloudinary configuration
+        await CloudinaryService.debugCloudinaryConfiguration();
+        
+        // Kiểm tra kết nối Cloudinary trước
+        final isConnected = await CloudinaryService.checkCloudinaryConnection();
+        print('[PROFILE] Cloudinary connection status: $isConnected');
+        
+        if (!isConnected) {
+          throw Exception('Cloudinary chưa được cấu hình. Vui lòng:\n1. Đăng ký tài khoản Cloudinary miễn phí\n2. Cập nhật cloud name và upload preset\n3. Kiểm tra kết nối internet');
+        }
+        
+        avatarUrl = await CloudinaryService.uploadAvatar(_selectedImage!);
+        print('[PROFILE] Upload ảnh thành công: $avatarUrl');
+      }
+
+      final success = await authViewModel.updateUserInfo(
+        fullName: _fullNameController.text.trim(),
+        phone: _phoneController.text.trim(),
+        avatarUrl: avatarUrl,
+      );
+
+      // Đóng loading dialog
+      if (mounted) Navigator.of(context).pop();
+
+      if (success) {
+        setState(() {
+          _isEditing = false;
+          _selectedImage = null;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Cập nhật thông tin thành công'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                authViewModel.errorMessage ?? 'Lỗi cập nhật thông tin',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Đóng loading dialog
+      if (mounted) Navigator.of(context).pop();
+
+      print('Error saving profile: $e');
+      
+      if (mounted) {
+        // Hiển thị lỗi chi tiết hơn
+        String errorMessage = 'Lỗi không xác định';
+        
+        if (e.toString().contains('cloudinary') || e.toString().contains('Cloudinary')) {
+          errorMessage = 'Lỗi upload ảnh: ${e.toString().replaceAll('Exception: ', '')}';
+        } else if (e.toString().contains('network')) {
+          errorMessage = 'Lỗi kết nối mạng. Vui lòng kiểm tra internet.';
+        } else if (e.toString().contains('timeout')) {
+          errorMessage = 'Upload quá lâu. Vui lòng thử lại với ảnh nhỏ hơn.';
+        } else {
+          errorMessage = e.toString().replaceAll('Exception: ', '');
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Thử lại',
+              textColor: Colors.white,
+              onPressed: () {
+                // Thử lại chỉ cập nhật thông tin mà không upload ảnh
+                _saveProfileWithoutImage();
+              },
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Lưu thông tin mà không upload ảnh (fallback)
+  Future<void> _saveProfileWithoutImage() async {
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+    
+    try {
+      final success = await authViewModel.updateUserInfo(
+        fullName: _fullNameController.text.trim(),
+        phone: _phoneController.text.trim(),
+        // Không upload ảnh mới
+      );
+
+      if (success) {
+        setState(() {
+          _isEditing = false;
+          _selectedImage = null;
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Cập nhật thông tin thành công (không bao gồm ảnh)'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _handleLogout(BuildContext context, AuthViewModel authViewModel) async {
+    final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text(
-            'Chỉnh sửa thông tin',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Họ và tên',
-                  border: OutlineInputBorder(),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: AppColors.primary),
-                  ),
-                ),
-              ),
-            ],
-          ),
+          title: const Text('Xác nhận đăng xuất'),
+          content: const Text('Bạn có chắc chắn muốn đăng xuất không?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
-                'Hủy',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Hủy'),
             ),
-            Consumer<ProfileViewModel>(
-              builder: (context, profileVM, child) {
-                return TextButton(
-                  onPressed: profileVM.isLoading ? null : () async {
-                    final newName = nameController.text.trim();
-                    if (newName.isEmpty) {
-                      _showMessage('Vui lòng nhập họ và tên', isError: true);
-                      return;
-                    }
-
-                    final token = authViewModel.token;
-                    if (token == null) {
-                      _showMessage('Phiên đăng nhập đã hết hạn', isError: true);
-                      return;
-                    }
-
-                    final success = await profileVM.updateProfile(
-                      token: token,
-                      fullName: newName,
-                    );
-
-                    if (!mounted) return;
-
-                    if (success) {
-                      Navigator.of(context).pop();
-                      _showMessage('Cập nhật thông tin thành công');
-                      // Cập nhật thông tin trong AuthViewModel
-                      authViewModel.updateUserInfo(profileVM.currentUser!);
-                    } else {
-                      _showMessage(profileVM.errorMessage ?? 'Cập nhật thất bại', isError: true);
-                    }
-                  },
-                  child: profileVM.isLoading
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                          ),
-                        )
-                      : const Text(
-                          'Lưu',
-                          style: TextStyle(color: AppColors.primary),
-                        ),
-                );
-              },
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text(
+                'Đăng xuất',
+                style: TextStyle(color: Colors.red),
+              ),
             ),
           ],
         );
       },
     );
-  }
 
-  void _showAvatarOptions(BuildContext context) {
-    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
-    final profileViewModel = Provider.of<ProfileViewModel>(context, listen: false);
-    
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Container(
-          padding: const EdgeInsets.all(AppSizes.paddingLarge),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Thay đổi ảnh đại diện',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: AppSizes.spacingLarge),
-              
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Camera
-                  GestureDetector(
-                    onTap: () async {
-                      Navigator.pop(context);
-                      await _pickImage(context, authViewModel, profileViewModel, true);
-                    },
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: const Icon(
-                            Icons.camera_alt,
-                            size: 30,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        const SizedBox(height: AppSizes.spacingSmall),
-                        const Text(
-                          'Camera',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  // Gallery
-                  GestureDetector(
-                    onTap: () async {
-                      Navigator.pop(context);
-                      await _pickImage(context, authViewModel, profileViewModel, false);
-                    },
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: AppColors.green.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: const Icon(
-                            Icons.photo_library,
-                            size: 30,
-                            color: AppColors.green,
-                          ),
-                        ),
-                        const SizedBox(height: AppSizes.spacingSmall),
-                        const Text(
-                          'Thư viện',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: AppSizes.spacingLarge),
-            ],
-          ),
-        );
-      },
-    );
-  }
+    if (shouldLogout == true) {
+      await authViewModel.logout();
 
-  Future<void> _pickImage(
-    BuildContext context,
-    AuthViewModel authViewModel,
-    ProfileViewModel profileViewModel,
-    bool fromCamera,
-  ) async {
-    try {
-      // Import image_picker dynamically to avoid compile errors if not installed
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: fromCamera ? ImageSource.camera : ImageSource.gallery,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 80,
-      );
-
-      if (image != null) {
-        final token = authViewModel.token;
-        if (token == null) {
-          _showMessage('Phiên đăng nhập đã hết hạn', isError: true);
-          return;
-        }
-
-        // Show loading message
-        _showMessage('Đang upload ảnh...', isLoading: true);
-
-        final success = await profileViewModel.uploadAvatar(token, File(image.path));
-
-        if (success) {
-          _showMessage('Cập nhật ảnh đại diện thành công');
-          // Cập nhật thông tin trong AuthViewModel
-          authViewModel.updateUserInfo(profileViewModel.currentUser!);
-        } else {
-          _showMessage(profileViewModel.errorMessage ?? 'Upload ảnh thất bại', isError: true);
-        }
+      if (context.mounted) {
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
       }
-    } catch (e) {
-      print('Lỗi khi chọn/upload ảnh: $e');
-      _showMessage('Không thể chọn ảnh. Vui lòng thử lại.', isError: true);
     }
   }
-
-  void _showMessage(String message, {bool isError = false, bool isLoading = false}) {
-    if (!mounted) return;
-    
-    ScaffoldMessenger.of(context).clearSnackBars();
-    
-    if (isLoading) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(message),
-            ],
-          ),
-          backgroundColor: Colors.blue,
-          duration: const Duration(seconds: 30), // Long duration for loading
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: isError ? Colors.red : Colors.green,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
-  }
-
-  void _showAddressDialog(BuildContext context) {
-    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
-    final profileViewModel = Provider.of<ProfileViewModel>(context, listen: false);
-    
-    final TextEditingController nameController = TextEditingController();
-    final TextEditingController addressController = TextEditingController();
-    
-    double? currentLatitude;
-    double? currentLongitude;
-    bool isLoadingLocation = false;
-    
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header
-                    Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Icon(
-                            Icons.location_on,
-                            color: AppColors.primary,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Text(
-                            'Thêm địa chỉ mới',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(
-                            Icons.close,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Form fields
-                    const Text(
-                      'Tên địa chỉ',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppColors.borderLight,
-                          width: 1,
-                        ),
-                      ),
-                      child: TextField(
-                        controller: nameController,
-                        decoration: const InputDecoration(
-                          hintText: 'VD: Nhà riêng, Công ty, Trường học...',
-                          hintStyle: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 14,
-                          ),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.all(16),
-                        ),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 20),
-                    
-                    // Location button
-                    Container(
-                      width: double.infinity,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.primary,
-                            AppColors.primary.withOpacity(0.8),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: isLoadingLocation ? null : () async {
-                            setState(() {
-                              isLoadingLocation = true;
-                            });
-                            
-                            final position = await LocationService.getCurrentPosition();
-                            
-                            if (position != null) {
-                              currentLatitude = position.latitude;
-                              currentLongitude = position.longitude;
-                              
-                              setState(() {
-                                isLoadingLocation = false;
-                              });
-                              
-                              final address = await LocationService.getAddressFromCoordinates(
-                                position.latitude,
-                                position.longitude,
-                              );
-                              
-                              addressController.text = address;
-                              
-                              ScaffoldMessenger.of(context).clearSnackBars();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Row(
-                                    children: [
-                                      Icon(Icons.location_on, color: Colors.white, size: 20),
-                                      SizedBox(width: 8),
-                                      Text('Đã lấy địa chỉ hiện tại thành công'),
-                                    ],
-                                  ),
-                                  backgroundColor: Colors.green,
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                            } else {
-                              setState(() {
-                                isLoadingLocation = false;
-                              });
-                              
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Không thể lấy vị trí. Vui lòng kiểm tra quyền truy cập.'),
-                                  backgroundColor: Colors.red,
-                                  duration: Duration(seconds: 3),
-                                ),
-                              );
-                            }
-                          },
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                if (isLoadingLocation)
-                                  const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
-                                    ),
-                                  )
-                                else
-                                  const Icon(
-                                    Icons.my_location,
-                                    size: 20,
-                                    color: AppColors.white,
-                                  ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  isLoadingLocation ? 'Đang lấy vị trí...' : 'Lấy vị trí hiện tại',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 20),
-                    
-                    const Text(
-                      'Địa chỉ chi tiết',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppColors.borderLight,
-                          width: 1,
-                        ),
-                      ),
-                      child: TextField(
-                        controller: addressController,
-                        maxLines: 3,
-                        decoration: const InputDecoration(
-                          hintText: 'Nhập địa chỉ chi tiết hoặc sử dụng nút lấy vị trí ở trên',
-                          hintStyle: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 14,
-                          ),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.all(16),
-                        ),
-                      ),
-                    ),
-                    
-                    // Location info
-                    if (currentLatitude != null && currentLongitude != null) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.primary.withOpacity(0.05),
-                              AppColors.primary.withOpacity(0.02),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.primary.withOpacity(0.2),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: const Icon(
-                                Icons.check,
-                                size: 18,
-                                color: AppColors.white,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Vị trí đã được xác định',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Tọa độ: ${currentLatitude!.toStringAsFixed(6)}, ${currentLongitude!.toStringAsFixed(6)}',
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Action buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: AppColors.background,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: AppColors.borderLight,
-                                width: 1,
-                              ),
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: () => Navigator.of(context).pop(),
-                                borderRadius: BorderRadius.circular(12),
-                                child: const Center(
-                                  child: Text(
-                                    'Hủy',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: Consumer<ProfileViewModel>(
-                            builder: (context, profileVM, child) {
-                              return Container(
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      AppColors.primary,
-                                      AppColors.primary.withOpacity(0.8),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primary.withOpacity(0.3),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    onTap: profileVM.isLoading ? null : () async {
-                                      final name = nameController.text.trim();
-                                      final address = addressController.text.trim();
-                                      
-                                      if (name.isEmpty || address.isEmpty) {
-                                        _showMessage('Vui lòng nhập đầy đủ thông tin', isError: true);
-                                        return;
-                                      }
-
-                                      final token = authViewModel.token;
-                                      if (token == null) {
-                                        _showMessage('Phiên đăng nhập đã hết hạn', isError: true);
-                                        return;
-                                      }
-
-                                      final success = await profileVM.updateAddress(
-                                        token: token,
-                                        name: name,
-                                        address: address,
-                                        latitude: currentLatitude,
-                                        longitude: currentLongitude,
-                                        isDefault: profileVM.addresses.isEmpty,
-                                      );
-
-                                      if (!mounted) return;
-
-                                      if (success) {
-                                        Navigator.of(context).pop();
-                                        _showMessage('✅ Thêm địa chỉ thành công');
-                                        // Reload profile để cập nhật danh sách địa chỉ
-                                        _loadProfile();
-                                      } else {
-                                        _showMessage(profileVM.errorMessage ?? 'Thêm địa chỉ thất bại', isError: true);
-                                      }
-                                    },
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                                      child: Center(
-                                        child: profileVM.isLoading
-                                            ? const SizedBox(
-                                                width: 20,
-                                                height: 20,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
-                                                ),
-                                              )
-                                            : const Text(
-                                                'Lưu địa chỉ',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: AppColors.white,
-                                                ),
-                                              ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _showComingSoon(BuildContext context, String feature) {
-    DialogUtils.showInfo(
-      context,
-      title: 'Sắp ra mắt',
-      message: 'Tính năng $feature sẽ được phát triển trong phiên bản tiếp theo.',
-    );
-  }
-
-  void _showLogoutConfirmation(BuildContext context) {
-    DialogUtils.showConfirmation(
-      context,
-      title: 'Xác nhận đăng xuất',
-      message: 'Bạn có chắc chắn muốn đăng xuất khỏi ứng dụng không?',
-      confirmText: 'Đăng xuất',
-      cancelText: 'Hủy',
-      onConfirm: () async {
-        final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
-        await authViewModel.logout();
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          AppRoutes.login,
-          (route) => false,
-        );
-      },
-    );
-  }
-
-
 }

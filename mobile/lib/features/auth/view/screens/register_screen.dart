@@ -9,6 +9,7 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../../../core/utils/validators.dart';
 import '../../viewmodel/auth_viewmodel.dart';
+import '../widgets/auth_header.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -65,29 +66,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: AppSizes.spacingMedium),
-                  
-                  // Title
-                  const Text(
-                    AppTexts.registerTitle,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: AppSizes.spacingSmall),
-                  
-                  // Subtitle
-                  const Text(
-                    AppTexts.registerSubtitle,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: AppColors.textSecondary,
-                      height: 1.4,
-                    ),
+
+                  // Auth Header
+                  const AuthHeader(
+                    title: AppTexts.registerTitle,
+                    subtitle: AppTexts.registerSubtitle,
+                    icon: Icons.person_add_outlined,
                   ),
                   const SizedBox(height: AppSizes.spacingXLarge),
-                  
+
                   // Full Name Field
                   AppTextField(
                     label: AppTexts.fullNameLabel,
@@ -97,7 +84,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     validator: Validators.validateFullName,
                   ),
                   const SizedBox(height: AppSizes.spacingLarge),
-                  
+
                   // Phone Field
                   AppTextField(
                     label: AppTexts.phoneLabel,
@@ -107,7 +94,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     validator: Validators.validatePhone,
                   ),
                   const SizedBox(height: AppSizes.spacingLarge),
-                  
+
                   // Email Field
                   AppTextField(
                     label: AppTexts.emailLabel,
@@ -117,7 +104,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     validator: Validators.validateEmail,
                   ),
                   const SizedBox(height: AppSizes.spacingLarge),
-                  
+
                   // Password Field
                   AppTextField(
                     label: AppTexts.passwordLabel,
@@ -127,7 +114,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     validator: Validators.validatePassword,
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
                         color: AppColors.textSecondary,
                       ),
                       onPressed: () {
@@ -137,9 +126,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       },
                     ),
                   ),
-                  
+
                   const SizedBox(height: AppSizes.spacingSmall),
-                  
+
                   // Password requirement
                   const Text(
                     AppTexts.passwordMinLengthMessage,
@@ -148,18 +137,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       fontSize: 12,
                     ),
                   ),
-                  
+
                   const SizedBox(height: AppSizes.spacingXLarge * 2),
-                  
+
                   // Register Button
                   AppButton(
                     text: AppTexts.registerButton,
                     onPressed: () => _handleRegister(authViewModel),
                     isLoading: authViewModel.isLoading,
                   ),
-                  
+
                   const SizedBox(height: AppSizes.spacingXLarge),
-                  
+
                   // Login Link
                   Center(
                     child: Row(
@@ -174,7 +163,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         GestureDetector(
                           onTap: () {
-                            Navigator.pushReplacementNamed(context, AppRoutes.login);
+                            Navigator.pushReplacementNamed(
+                                context, AppRoutes.login);
                           },
                           child: const Text(
                             AppTexts.loginText,
@@ -188,17 +178,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ],
                     ),
                   ),
-                  
+
                   // Error Message
                   if (authViewModel.errorMessage != null)
                     Padding(
-                      padding: const EdgeInsets.only(top: AppSizes.spacingMedium),
+                      padding:
+                          const EdgeInsets.only(top: AppSizes.spacingMedium),
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(AppSizes.paddingMedium),
                         decoration: BoxDecoration(
                           color: AppColors.redLight,
-                          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                          borderRadius:
+                              BorderRadius.circular(AppSizes.radiusSmall),
                         ),
                         child: Text(
                           authViewModel.errorMessage!,
@@ -226,13 +218,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      
+
       if (success && mounted) {
         // Hiển thị dialog thành công
         DialogUtils.showSuccess(
           context,
           title: 'Đăng ký thành công!',
-          message: 'Chào mừng ${authViewModel.currentUser?.fullName ?? ''} đến với ứng dụng!',
+          message:
+              'Chào mừng ${authViewModel.currentUser?.fullName ?? ''} đến với ứng dụng!',
           buttonText: 'Bắt đầu',
           onPressed: () {
             Navigator.of(context).pop(); // Đóng dialog

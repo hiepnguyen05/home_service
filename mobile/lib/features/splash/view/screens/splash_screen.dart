@@ -4,7 +4,6 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../auth/viewmodel/auth_viewmodel.dart';
-import '../../../permission/viewmodel/permission_viewmodel.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -22,7 +21,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _checkAppState() async {
     print('Bắt đầu kiểm tra trạng thái app...');
-    
+
     // Khởi tạo AuthViewModel trước
     final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
     print('Đang khởi tạo AuthViewModel...');
@@ -36,8 +35,9 @@ class _SplashScreenState extends State<SplashScreen> {
 
     print('Đang kiểm tra quyền location...');
     // Kiểm tra quyền location
-    final hasLocationPermission = await LocationService.checkAndRequestPermission();
-    
+    final hasLocationPermission =
+        await LocationService.checkAndRequestPermission();
+
     if (!hasLocationPermission) {
       print('Chưa có quyền location -> chuyển đến PermissionScreen');
       // Chưa có quyền location -> đi đến màn hình cấp quyền
@@ -46,13 +46,12 @@ class _SplashScreenState extends State<SplashScreen> {
     }
 
     print('Đã có quyền location');
-    
+
     // Đã có quyền location -> kiểm tra trạng thái đăng nhập
     print('Kiểm tra trạng thái đăng nhập...');
     print('Current user: ${authViewModel.currentUser?.fullName}');
-    print('Token: ${authViewModel.token != null ? 'có' : 'không có'}');
     print('Is logged in: ${authViewModel.isLoggedIn}');
-    
+
     if (authViewModel.isLoggedIn) {
       print('Đã đăng nhập -> chuyển đến MainScreen');
       // Đã đăng nhập -> vào thẳng trang chủ
@@ -86,9 +85,9 @@ class _SplashScreenState extends State<SplashScreen> {
                 color: AppColors.white,
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Tên ứng dụng
             const Text(
               'Home Service',
@@ -98,32 +97,26 @@ class _SplashScreenState extends State<SplashScreen> {
                 color: AppColors.textPrimary,
               ),
             ),
-            
+
             const SizedBox(height: 8),
-            
+
             const Text(
               'Dịch vụ tại nhà tiện lợi',
-              style: TextStyle(
-                fontSize: 16,
-                color: AppColors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
             ),
-            
+
             const SizedBox(height: 48),
-            
+
             // Loading indicator
             const CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             const Text(
               'Đang khởi tạo...',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
             ),
           ],
         ),

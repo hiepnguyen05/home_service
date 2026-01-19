@@ -1,60 +1,48 @@
 import 'package:flutter/foundation.dart';
-import '../../../core/network/api_response.dart';
-<<<<<<< HEAD
-=======
-import '../../../core/network/auth_response.dart';
->>>>>>> origin/feature/account-management
-import '../../../core/services/storage_service.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/models/user_model.dart';
 
-/// ViewModel quản lý trạng thái xác thực
+/// ViewModel quản lý trạng thái xác thực với Firebase
 class AuthViewModel extends ChangeNotifier {
-  final AuthRepository _authRepository = AuthRepository();
-  
+  final AuthRepository _authRepository;
+
+  AuthViewModel({AuthRepository? authRepository})
+      : _authRepository = authRepository ?? AuthRepository();
+
   bool _isLoading = false;
   String? _errorMessage;
   UserModel? _currentUser;
-  String? _token;
   bool _isInitialized = false;
 
   // Getters
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   UserModel? get currentUser => _currentUser;
-  String? get token => _token;
-  bool get isLoggedIn => _currentUser != null && _token != null;
+  bool get isLoggedIn => _currentUser != null;
   bool get isInitialized => _isInitialized;
 
-  /// Khởi tạo và load dữ liệu từ storage
+  /// Khởi tạo và kiểm tra trạng thái đăng nhập Firebase
   Future<void> initialize() async {
     if (_isInitialized) {
-      print('AuthViewModel đã được khởi tạo rồi');
       return;
     }
-    
+
     print('Bắt đầu khởi tạo AuthViewModel...');
-    
+
     try {
-      print('Đang đọc dữ liệu từ SharedPreferences...');
-      final token = await StorageService.getAuthToken();
-      final userInfo = await StorageService.getUserInfo();
-      
-      print('Token từ storage: ${token != null ? 'có (${token.substring(0, 20)}...)' : 'không có'}');
-      print('User info từ storage: ${userInfo != null ? userInfo['full_name'] : 'không có'}');
-      
-      if (token != null && userInfo != null) {
-        _token = token;
-        _currentUser = UserModel.fromJson(userInfo);
-        print('Đã khôi phục session đăng nhập cho: ${_currentUser!.fullName}');
+      // Repository tự handle việc ưu tiên cache hay remote
+      final userModel = await _authRepository.getCurrentUser();
+
+      if (userModel != null) {
+        _currentUser = userModel;
+        print('Đã khôi phục session đăng nhập cho: ${userModel.fullName}');
       } else {
-        print('Không có session đăng nhập trong storage');
+        print('Không tìm thấy thông tin user hoặc chưa đăng nhập');
       }
     } catch (e) {
       print('Lỗi khởi tạo AuthViewModel: $e');
     } finally {
       _isInitialized = true;
-      print('AuthViewModel đã khởi tạo xong. IsLoggedIn: $isLoggedIn');
       notifyListeners();
     }
   }
@@ -77,31 +65,32 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Đăng nhập
-  Future<bool> login(String identifier, String password) async {
+  /// Đăng nhập với email và mật khẩu
+  Future<bool> login(String email, String password) async {
     _setLoading(true);
     _setError(null);
 
     try {
-      final response = await _authRepository.login(identifier, password);
-      
-      if (response.success && response.data != null) {
-        _currentUser = response.data!.user;
-        _token = response.data!.token;
-        
-        // Lưu vào storage
-        await StorageService.saveAuthToken(_token!);
-        await StorageService.saveUserInfo(_currentUser!.toJson());
-        
-        _setLoading(false);
-        return true;
-      } else {
-        _setError(response.message);
-        _setLoading(false);
-        return false;
-      }
+      print('Đang đăng nhập với email: $email');
+      final userModel = await _authRepository.login(email, password);
+      _currentUser = userModel;
+
+      _setLoading(false);
+      print('Đăng nhập thành công: ${userModel.fullName}');
+      return true;
     } catch (e) {
-      _setError('Đã xảy ra lỗi: $e');
+      print('LOGIN ERROR (AuthViewModel): $e'); // Detailed log
+      // Helper to format error message
+      String message = e.toString().replaceAll('Exception: ', '');
+      if (message.contains('network_error')) {
+        message = 'Lỗi kết nối mạng. Vui lòng kiểm tra lại.';
+      } else if (message.contains('invalid-credential')) {
+        message = 'Email hoặc mật khẩu không chính xác.';
+      } else if (message.contains('permission-denied')) {
+        message =
+            'Lỗi quyền truy cập (Firestore Rules). Hãy cấu hình cho phép read/write trong Firebase Console.';
+      }
+      _setError(message);
       _setLoading(false);
       return false;
     }
@@ -118,30 +107,23 @@ class AuthViewModel extends ChangeNotifier {
     _setError(null);
 
     try {
-      final response = await _authRepository.register(
+      print('Đang đăng ký tài khoản với email: $email');
+
+      final userModel = await _authRepository.register(
         fullName: fullName,
         phone: phone,
         email: email,
         password: password,
       );
-      
-      if (response.success && response.data != null) {
-        _currentUser = response.data!.user;
-        _token = response.data!.token;
-        
-        // Lưu vào storage
-        await StorageService.saveAuthToken(_token!);
-        await StorageService.saveUserInfo(_currentUser!.toJson());
-        
-        _setLoading(false);
-        return true;
-      } else {
-        _setError(response.message);
-        _setLoading(false);
-        return false;
-      }
+
+      _currentUser = userModel;
+
+      _setLoading(false);
+      print('Đăng ký thành công: ${userModel.fullName}');
+      return true;
     } catch (e) {
-      _setError('Đã xảy ra lỗi: $e');
+      print('Lỗi đăng ký: $e');
+      _setError(e.toString().replaceAll('Exception: ', ''));
       _setLoading(false);
       return false;
     }
@@ -149,21 +131,74 @@ class AuthViewModel extends ChangeNotifier {
 
   /// Đăng xuất
   Future<void> logout() async {
-    _currentUser = null;
-    _token = null;
-    _errorMessage = null;
-    
-    // Xóa khỏi storage
-    await StorageService.clearAuthData();
-    
-    notifyListeners();
+    try {
+      print('Đang đăng xuất...');
+      await _authRepository.logout();
+      _currentUser = null;
+      _errorMessage = null;
+      print('Đăng xuất thành công');
+      notifyListeners();
+    } catch (e) {
+      print('Lỗi đăng xuất: $e');
+      _setError('Lỗi đăng xuất: $e');
+    }
+  }
+
+  /// Gửi email reset password
+  Future<bool> sendPasswordResetEmail(String email) async {
+    _setLoading(true);
+    _setError(null);
+
+    try {
+      await _authRepository.sendPasswordResetEmail(email);
+      _setLoading(false);
+      return true;
+    } catch (e) {
+      _setError(e.toString().replaceAll('Exception: ', ''));
+      _setLoading(false);
+      return false;
+    }
   }
 
   /// Cập nhật thông tin người dùng
-  Future<void> updateUserInfo(UserModel user) async {
-    _currentUser = user;
-    // Cập nhật storage
-    await StorageService.saveUserInfo(user.toJson());
-    notifyListeners();
+  Future<bool> updateUserInfo({
+    String? fullName,
+    String? phone,
+    String? avatarUrl,
+  }) async {
+    if (_currentUser == null) return false;
+
+    _setLoading(true);
+    _setError(null);
+
+    try {
+      // Giả định uid có thể lấy từ currentUser
+      // Tuy nhiên Repository cần uid, mà currentUser.id có thể là uid
+      // Nếu UserModel.id map với Firebase UID thì ok.
+      // Nếu không thì ViewModel không nên biết UID?
+      // Repository nên tự biết current UID nếu nó dùng FirebaseAuth.
+      // Nhưng Repository method updateUserInfo yêu cầu UID.
+      // Ta tạm lấy từ currentUser.id
+
+      await _authRepository.updateUserInfo(
+        // uid: bỏ trống để repo tự lấy current uid từ firebase
+        fullName: fullName,
+        phone: phone,
+        avatarUrl: avatarUrl,
+      );
+
+      // Reload lại data mới nhất từ repo
+      final updatedUser = await _authRepository.getCurrentUser();
+      if (updatedUser != null) {
+        _currentUser = updatedUser;
+      }
+
+      _setLoading(false);
+      return true;
+    } catch (e) {
+      _setError(e.toString().replaceAll('Exception: ', ''));
+      _setLoading(false);
+      return false;
+    }
   }
 }

@@ -9,6 +9,7 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../../../core/utils/validators.dart';
 import '../../viewmodel/auth_viewmodel.dart';
+import '../widgets/auth_header.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -51,51 +52,27 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Welcome Icon
-                  Center(
-                    child: Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: AppColors.greenLight,
-                        borderRadius: BorderRadius.circular(40),
-                      ),
-                      child: const Icon(
-                        Icons.work_outline,
-                        size: 40,
-                        color: AppColors.green,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSizes.spacingLarge),
-                  
-                  // Title
-                  const Center(
-                    child: Text(
-                      AppTexts.loginTitle,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
+                  // Auth Header
+                  const AuthHeader(title: AppTexts.loginTitle),
+
                   const SizedBox(height: AppSizes.spacingXLarge),
-                  
-                  // Email/Phone Field
+
+                  // Email Field
                   AppTextField(
-                    label: AppTexts.emailOrPhoneLabel,
-                    hint: AppTexts.emailOrPhoneHint,
+                    label: 'Email',
+                    hint: 'Nhập email của bạn',
                     controller: _identifierController,
                     keyboardType: TextInputType.emailAddress,
-                    validator: Validators.validateEmailOrPhone,
+                    validator: Validators.validateEmail,
                   ),
-                  
+
                   // Error message for identifier
-                  if (authViewModel.errorMessage != null && 
+                  if (authViewModel.errorMessage != null &&
                       authViewModel.errorMessage!.contains('không hợp lệ'))
                     Padding(
-                      padding: const EdgeInsets.only(top: AppSizes.spacingSmall),
+                      padding: const EdgeInsets.only(
+                        top: AppSizes.spacingSmall,
+                      ),
                       child: Text(
                         AppTexts.phoneInvalidMessage,
                         style: const TextStyle(
@@ -104,9 +81,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
-                  
+
                   const SizedBox(height: AppSizes.spacingLarge),
-                  
+
                   // Password Field
                   AppTextField(
                     label: AppTexts.passwordLabel,
@@ -116,7 +93,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     validator: Validators.validatePassword,
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
                         color: AppColors.textSecondary,
                       ),
                       onPressed: () {
@@ -126,12 +105,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                     ),
                   ),
-                  
+
                   // Error message for password
-                  if (authViewModel.errorMessage != null && 
+                  if (authViewModel.errorMessage != null &&
                       authViewModel.errorMessage!.contains('8 ký tự'))
                     Padding(
-                      padding: const EdgeInsets.only(top: AppSizes.spacingSmall),
+                      padding: const EdgeInsets.only(
+                        top: AppSizes.spacingSmall,
+                      ),
                       child: Text(
                         AppTexts.passwordMinLengthMessage,
                         style: const TextStyle(
@@ -140,15 +121,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
-                  
+
                   const SizedBox(height: AppSizes.spacingMedium),
-                  
+
                   // Forgot Password
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () {
-                        // TODO: Implement forgot password
+                        Navigator.pushNamed(context, AppRoutes.forgotPassword);
                       },
                       child: const Text(
                         AppTexts.forgotPasswordButton,
@@ -160,18 +141,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: AppSizes.spacingXLarge),
-                  
+
                   // Login Button
                   AppButton(
                     text: AppTexts.loginButton,
                     onPressed: () => _handleLogin(authViewModel),
                     isLoading: authViewModel.isLoading,
                   ),
-                  
+
                   const SizedBox(height: AppSizes.spacingMedium),
-                  
+
                   // Login with OTP Button
                   AppButton(
                     text: AppTexts.loginWithOtpButton,
@@ -179,13 +160,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () {
                       // TODO: Implement OTP login
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Tính năng đăng nhập OTP sẽ được phát triển')),
+                        const SnackBar(
+                          content: Text(
+                            'Tính năng đăng nhập OTP sẽ được phát triển',
+                          ),
+                        ),
                       );
                     },
                   ),
-                  
+
                   const SizedBox(height: AppSizes.spacingXLarge),
-                  
+
                   // Register Link
                   Center(
                     child: Row(
@@ -229,13 +214,14 @@ class _LoginScreenState extends State<LoginScreen> {
         _identifierController.text.trim(),
         _passwordController.text,
       );
-      
+
       if (success && mounted) {
         // Hiển thị dialog thành công
         DialogUtils.showSuccess(
           context,
           title: 'Đăng nhập thành công!',
-          message: 'Chào mừng bạn quay trở lại ${authViewModel.currentUser?.fullName ?? ''}',
+          message:
+              'Chào mừng bạn quay trở lại ${authViewModel.currentUser?.fullName ?? ''}',
           buttonText: 'Tiếp tục',
           onPressed: () {
             Navigator.of(context).pop(); // Đóng dialog

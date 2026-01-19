@@ -1,0 +1,26 @@
+rules_version = '2';
+
+// Craft rules based on data in your Firestore database
+// allow write: if firestore.get(
+//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Rules for avatars folder
+    match /avatars/{imageId} {
+      // Allow read and write if user is authenticated
+      allow read, write: if request.auth != null;
+      
+      // Allow only image files
+      allow write: if request.resource.contentType.matches('image/.*');
+      
+      // Limit file size to 5MB
+      allow write: if request.resource.size < 5 * 1024 * 1024;
+    }
+    
+    // Rules for other files
+    match /{allPaths=**} {
+      // Allow read and write if user is authenticated
+      allow read, write: if request.auth != null;
+    }
+  }
+}
