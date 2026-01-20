@@ -1,0 +1,61 @@
+name: mobile
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  provider: ^6.1.5+1
+  http: ^1.1.0
+<<<<<<< HEAD
+=======
+  http_parser: ^4.0.0
+>>>>>>> origin/feature/account-management
+  image_picker: ^1.0.4
+  geolocator: ^10.1.0
+  geocoding: ^3.0.0
+  shared_preferences: ^2.2.2
+<<<<<<< HEAD
+=======
+  permission_handler: ^11.4.0
+>>>>>>> origin/feature/account-management
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_native_splash: ^2.4.0
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
+# ================== FLUTTER ==================
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/logo.png
+
+# ================== SPLASH SCREEN ==================
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/images/logo.png
+
+  android_12:
+    color: "#FFFFFF"
+    image: assets/images/logo.png
+
+  android: true
+  ios: true
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/icon/logo.png
+
+  android_12:
+    image: assets/icon/logo.png
+    icon_background_color: "#FFFFFF"
