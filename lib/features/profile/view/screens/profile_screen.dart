@@ -9,7 +9,9 @@ import '../../../../core/services/cloudinary_service.dart';
 import '../../../auth/viewmodel/auth_viewmodel.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final bool isProviderMode;
+
+  const ProfileScreen({super.key, this.isProviderMode = false});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -62,10 +64,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.black),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
       ),
       body: Consumer<AuthViewModel>(
         builder: (context, authViewModel, child) {
@@ -99,17 +103,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             backgroundImage: _selectedImage != null
                                 ? FileImage(_selectedImage!)
                                 : (user.avatarUrl != null
-                                          ? NetworkImage(user.avatarUrl!)
-                                          : null)
-                                      as ImageProvider?,
+                                    ? NetworkImage(user.avatarUrl!)
+                                    : null) as ImageProvider?,
                             child:
                                 _selectedImage == null && user.avatarUrl == null
-                                ? const Icon(
-                                    Icons.person,
-                                    size: 50,
-                                    color: Colors.white,
-                                  )
-                                : null,
+                                    ? const Icon(
+                                        Icons.person,
+                                        size: 50,
+                                        color: Colors.white,
+                                      )
+                                    : null,
                           ),
                           if (_isEditing)
                             Positioned(
@@ -250,6 +253,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           // TODO: Navigate to notification settings
                         },
                       ),
+                      _buildDivider(),
+                      // Conditional: Show role switch for providers, partner registration for customers
+                      if (user.isProvider)
+                        _buildMenuItem(
+                          icon: Icons.swap_horiz,
+                          iconColor: AppColors.primary,
+                          title: widget.isProviderMode
+                              ? 'Chuyển sang chế độ khách'
+                              : 'Chuyển sang chế độ thợ',
+                          onTap: () {
+                            if (widget.isProviderMode) {
+                              // Currently in provider mode, switch to customer
+                              Navigator.pushNamedAndRemoveUntil(
+                                context,
+                                AppRoutes.home,
+                                (route) => false,
+                              );
+                            } else {
+                              // Currently in customer mode, switch to provider
+                              Navigator.pushNamedAndRemoveUntil(
+                                context,
+                                AppRoutes.providerHome,
+                                (route) => false,
+                              );
+                            }
+                          },
+                        )
+                      else
+                        _buildMenuItem(
+                          icon: Icons.handshake,
+                          iconColor: AppColors.primary,
+                          title: 'Đăng ký trở thành đối tác',
+                          onTap: () {
+                            Navigator.pushNamed(
+                                context, AppRoutes.partnerRegistration);
+                          },
+                        ),
                       _buildDivider(),
                       _buildMenuItem(
                         icon: Icons.help_center,
@@ -420,18 +460,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Upload ảnh nếu có chọn ảnh mới
       if (_selectedImage != null) {
         print('[PROFILE] Đang upload ảnh avatar...');
-        
+
         // Debug Cloudinary configuration
         await CloudinaryService.debugCloudinaryConfiguration();
-        
+
         // Kiểm tra kết nối Cloudinary trước
         final isConnected = await CloudinaryService.checkCloudinaryConnection();
         print('[PROFILE] Cloudinary connection status: $isConnected');
-        
+
         if (!isConnected) {
-          throw Exception('Cloudinary chưa được cấu hình. Vui lòng:\n1. Đăng ký tài khoản Cloudinary miễn phí\n2. Cập nhật cloud name và upload preset\n3. Kiểm tra kết nối internet');
+          throw Exception(
+              'Cloudinary chưa được cấu hình. Vui lòng:\n1. Đăng ký tài khoản Cloudinary miễn phí\n2. Cập nhật cloud name và upload preset\n3. Kiểm tra kết nối internet');
         }
-        
+
         avatarUrl = await CloudinaryService.uploadAvatar(_selectedImage!);
         print('[PROFILE] Upload ảnh thành công: $avatarUrl');
       }
@@ -476,13 +517,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) Navigator.of(context).pop();
 
       print('Error saving profile: $e');
-      
+
       if (mounted) {
         // Hiển thị lỗi chi tiết hơn
         String errorMessage = 'Lỗi không xác định';
-        
-        if (e.toString().contains('cloudinary') || e.toString().contains('Cloudinary')) {
-          errorMessage = 'Lỗi upload ảnh: ${e.toString().replaceAll('Exception: ', '')}';
+
+        if (e.toString().contains('cloudinary') ||
+            e.toString().contains('Cloudinary')) {
+          errorMessage =
+              'Lỗi upload ảnh: ${e.toString().replaceAll('Exception: ', '')}';
         } else if (e.toString().contains('network')) {
           errorMessage = 'Lỗi kết nối mạng. Vui lòng kiểm tra internet.';
         } else if (e.toString().contains('timeout')) {
@@ -490,7 +533,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         } else {
           errorMessage = e.toString().replaceAll('Exception: ', '');
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
@@ -513,7 +556,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   /// Lưu thông tin mà không upload ảnh (fallback)
   Future<void> _saveProfileWithoutImage() async {
     final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
-    
+
     try {
       final success = await authViewModel.updateUserInfo(
         fullName: _fullNameController.text.trim(),
@@ -526,11 +569,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _isEditing = false;
           _selectedImage = null;
         });
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Cập nhật thông tin thành công (không bao gồm ảnh)'),
+              content:
+                  Text('Cập nhật thông tin thành công (không bao gồm ảnh)'),
               backgroundColor: Colors.orange,
             ),
           );
