@@ -32,17 +32,17 @@ class AddressViewModel extends ChangeNotifier {
     try {
       _setLoading(true);
       _clearError();
-      
+
       print('[ADDRESS_VM] Đang load danh sách địa chỉ...');
-      
+
       _addresses = await _repository.getAddresses();
-      _defaultAddress = _addresses.firstWhere(
-        (address) => address.isDefault,
-        orElse: () => _addresses.isNotEmpty ? _addresses.first : null as AddressModel,
-      );
-      
+      if (_addresses.any((element) => element.isDefault)) {
+        _defaultAddress = _addresses.firstWhere((address) => address.isDefault);
+      } else {
+        _defaultAddress = _addresses.isNotEmpty ? _addresses.first : null;
+      }
+
       print('[ADDRESS_VM] Load thành công ${_addresses.length} địa chỉ');
-      
     } catch (e) {
       print('[ADDRESS_VM] Lỗi load địa chỉ: $e');
       _setError(_getErrorMessage(e));
@@ -56,25 +56,24 @@ class AddressViewModel extends ChangeNotifier {
     try {
       _setLoading(true);
       _clearError();
-      
+
       print('[ADDRESS_VM] Đang thêm địa chỉ: ${address.title}');
-      
+
       // Validate trước khi thêm
       _repository.validateAddress(address);
-      
+
       final newAddress = await _repository.addAddress(address);
-      
+
       // Cập nhật local state
       _addresses.insert(0, newAddress);
-      
+
       if (newAddress.isDefault) {
         _updateDefaultAddress(newAddress);
       }
-      
+
       print('[ADDRESS_VM] Thêm địa chỉ thành công');
       notifyListeners();
       return true;
-      
     } catch (e) {
       print('[ADDRESS_VM] Lỗi thêm địa chỉ: $e');
       _setError(_getErrorMessage(e));
@@ -89,28 +88,30 @@ class AddressViewModel extends ChangeNotifier {
     try {
       _setLoading(true);
       _clearError();
-      
+
       print('[ADDRESS_VM] Đang cập nhật địa chỉ: ${address.id}');
-      
+
       // Validate trước khi cập nhật
       _repository.validateAddress(address);
-      
+
       final updatedAddress = await _repository.updateAddress(address);
-      
+
       // Cập nhật local state
       final index = _addresses.indexWhere((a) => a.id == address.id);
       if (index != -1) {
         _addresses[index] = updatedAddress;
-        
+
         if (updatedAddress.isDefault) {
           _updateDefaultAddress(updatedAddress);
+        } else if (_defaultAddress?.id == updatedAddress.id) {
+          // Nếu bỏ chọn mặc định, clear default address
+          _defaultAddress = null;
         }
       }
-      
+
       print('[ADDRESS_VM] Cập nhật địa chỉ thành công');
       notifyListeners();
       return true;
-      
     } catch (e) {
       print('[ADDRESS_VM] Lỗi cập nhật địa chỉ: $e');
       _setError(_getErrorMessage(e));
@@ -125,14 +126,14 @@ class AddressViewModel extends ChangeNotifier {
     try {
       _setLoading(true);
       _clearError();
-      
+
       print('[ADDRESS_VM] Đang xóa địa chỉ: $addressId');
-      
+
       await _repository.deleteAddress(addressId);
-      
+
       // Cập nhật local state
       _addresses.removeWhere((address) => address.id == addressId);
-      
+
       // Nếu xóa địa chỉ mặc định, chọn địa chỉ đầu tiên làm mặc định
       if (_defaultAddress?.id == addressId) {
         _defaultAddress = _addresses.isNotEmpty ? _addresses.first : null;
@@ -140,11 +141,10 @@ class AddressViewModel extends ChangeNotifier {
           await setDefaultAddress(_defaultAddress!.id);
         }
       }
-      
+
       print('[ADDRESS_VM] Xóa địa chỉ thành công');
       notifyListeners();
       return true;
-      
     } catch (e) {
       print('[ADDRESS_VM] Lỗi xóa địa chỉ: $e');
       _setError(_getErrorMessage(e));
@@ -159,24 +159,23 @@ class AddressViewModel extends ChangeNotifier {
     try {
       _setLoading(true);
       _clearError();
-      
+
       print('[ADDRESS_VM] Đang đặt địa chỉ mặc định: $addressId');
-      
+
       await _repository.setDefaultAddress(addressId);
-      
+
       // Cập nhật local state
       for (int i = 0; i < _addresses.length; i++) {
         _addresses[i] = _addresses[i].copyWith(
           isDefault: _addresses[i].id == addressId,
         );
       }
-      
+
       _defaultAddress = _addresses.firstWhere((a) => a.id == addressId);
-      
+
       print('[ADDRESS_VM] Đặt địa chỉ mặc định thành công');
       notifyListeners();
       return true;
-      
     } catch (e) {
       print('[ADDRESS_VM] Lỗi đặt địa chỉ mặc định: $e');
       _setError(_getErrorMessage(e));
@@ -240,7 +239,7 @@ class AddressViewModel extends ChangeNotifier {
         _addresses[i] = _addresses[i].copyWith(isDefault: false);
       }
     }
-    
+
     _defaultAddress = newDefault;
   }
 
@@ -276,16 +275,16 @@ class AddressViewModel extends ChangeNotifier {
     if (value == null || value.trim().isEmpty) {
       return 'Vui lòng nhập số điện thoại';
     }
-    
+
     final phoneNumber = value.replaceAll(RegExp(r'[^\d]'), '');
     if (phoneNumber.length < 10 || phoneNumber.length > 11) {
       return 'Số điện thoại phải có 10-11 chữ số';
     }
-    
+
     if (!phoneNumber.startsWith('0')) {
       return 'Số điện thoại phải bắt đầu bằng số 0';
     }
-    
+
     return null;
   }
 
@@ -300,6 +299,15 @@ class AddressViewModel extends ChangeNotifier {
   }
 
   String? validateLocation(String? value, String fieldName) {
+    // Cho phép để trống các trường địa giới hành chính
+    // if (value == null || value.trim().isEmpty) {
+    //   return 'Vui lòng chọn $fieldName';
+    // }
+    return null;
+  }
+
+  /// Validate bắt buộc khi người dùng nhập thủ công
+  String? validateLocationRequired(String? value, String fieldName) {
     if (value == null || value.trim().isEmpty) {
       return 'Vui lòng chọn $fieldName';
     }

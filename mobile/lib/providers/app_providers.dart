@@ -3,6 +3,10 @@ import 'package:provider/provider.dart';
 import '../features/permission/viewmodel/permission_viewmodel.dart';
 import '../features/auth/viewmodel/auth_viewmodel.dart';
 import '../features/auth/data/repositories/auth_repository.dart';
+import '../features/services/data/repositories/service_repository.dart';
+import '../features/services/viewmodel/services_viewmodel.dart';
+import '../features/partner/data/repositories/partner_repository.dart';
+import '../features/partner/viewmodel/partner_viewmodel.dart';
 
 class AppProviders extends StatelessWidget {
   final Widget child;
@@ -15,6 +19,8 @@ class AppProviders extends StatelessWidget {
       providers: [
         // Repositories
         Provider(create: (_) => AuthRepository()),
+        Provider(create: (_) => ServiceRepository()),
+        Provider(create: (_) => PartnerRepository()),
 
         // ViewModels
         ChangeNotifierProvider(create: (_) => PermissionViewModel()),
@@ -24,6 +30,24 @@ class AppProviders extends StatelessWidget {
           ),
           update: (context, repository, previous) =>
               previous ?? AuthViewModel(authRepository: repository),
+        ),
+        ChangeNotifierProxyProvider<ServiceRepository, ServicesViewModel>(
+          create: (context) => ServicesViewModel(
+            repository: context.read<ServiceRepository>(),
+          ),
+          update: (context, repository, previous) =>
+              previous ?? ServicesViewModel(repository: repository),
+          // Note: Re-creating ViewModel on repo update might lose state.
+          // Better to use a proxy that just updates dependency if needed,
+          // but for now this is standard simple DI.
+          // Actually, ServiceRepository is a Provider (singleton-ish), so it won't change often.
+        ),
+        ChangeNotifierProxyProvider<PartnerRepository, PartnerViewModel>(
+          create: (context) => PartnerViewModel(
+            repository: context.read<PartnerRepository>(),
+          ),
+          update: (context, repository, previous) =>
+              previous ?? PartnerViewModel(repository: repository),
         ),
       ],
       child: child,

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_routes.dart';
 
 import '../../viewmodel/address_viewmodel.dart';
 import '../widgets/address_item_widget.dart';
-import 'add_edit_address_screen.dart';
 
 class AddressListScreen extends StatefulWidget {
   const AddressListScreen({super.key});
@@ -249,11 +249,9 @@ class _AddressListScreenState extends State<AddressListScreen> {
   }
 
   void _navigateToAddAddress() async {
-    final result = await Navigator.push(
+    final result = await Navigator.pushNamed(
       context,
-      MaterialPageRoute(
-        builder: (context) => const AddEditAddressScreen(),
-      ),
+      AppRoutes.addAddress,
     );
 
     if (result == true) {
@@ -265,11 +263,10 @@ class _AddressListScreenState extends State<AddressListScreen> {
     final address = _addressViewModel.getAddressById(addressId);
     if (address == null) return;
 
-    final result = await Navigator.push(
+    final result = await Navigator.pushNamed(
       context,
-      MaterialPageRoute(
-        builder: (context) => AddEditAddressScreen(address: address),
-      ),
+      AppRoutes.editAddress,
+      arguments: address,
     );
 
     if (result == true) {

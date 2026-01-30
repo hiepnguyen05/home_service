@@ -53,9 +53,14 @@ class _SplashScreenState extends State<SplashScreen> {
     print('Is logged in: ${authViewModel.isLoggedIn}');
 
     if (authViewModel.isLoggedIn) {
-      print('Đã đăng nhập -> chuyển đến MainScreen');
-      // Đã đăng nhập -> vào thẳng trang chủ
-      Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+      final user = authViewModel.currentUser;
+      if (user != null && user.isProvider) {
+        print('Đã đăng nhập (Provider) -> chuyển đến ProviderMainScreen');
+        Navigator.of(context).pushReplacementNamed(AppRoutes.providerHome);
+      } else {
+        print('Đã đăng nhập (Customer) -> chuyển đến MainScreen');
+        Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+      }
     } else {
       print('Chưa đăng nhập -> chuyển đến LoginScreen');
       // Chưa đăng nhập -> đi đến màn hình đăng nhập

@@ -24,6 +24,12 @@ class UserModel {
     required this.updatedAt,
   });
 
+  /// Kiểm tra xem user có phải là thợ không
+  bool get isProvider => role == 'provider';
+
+  /// Kiểm tra xem user có phải là khách không
+  bool get isCustomer => role == 'customer';
+
   /// Tạo UserModel từ JSON
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
@@ -35,8 +41,10 @@ class UserModel {
       avatarUrl: json['avatar_url'], // Có thể null
       role: json['role'],
       status: json['status'],
-      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updated_at'] ?? DateTime.now().toIso8601String()),
+      createdAt: DateTime.parse(
+          json['created_at'] ?? DateTime.now().toIso8601String()),
+      updatedAt: DateTime.parse(
+          json['updated_at'] ?? DateTime.now().toIso8601String()),
     );
   }
 

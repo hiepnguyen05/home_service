@@ -15,12 +15,12 @@ class AppColors {
   static const Color redLight = Color(0xFFFED7D7);
   static const Color orange = Color(0xFFFF9800);
   static const Color orangeLight = Color(0xFFFFF3E0);
-  
+
   // Text colors
   static const Color textPrimary = Color(0xFF1A202C);
   static const Color textSecondary = Color(0xFF718096);
   static const Color textHint = Color(0xFFA0AEC0);
-  
+
   // Border colors
   static const Color borderLight = Color(0xFFE2E8F0);
   static const Color borderFocus = Color(0xFF4CAF50);

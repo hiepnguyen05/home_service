@@ -34,13 +34,23 @@
 			<string>UIInterfaceOrientationLandscapeLeft</string>
 			<string>UIInterfaceOrientationLandscapeRight</string>
 		</array>
-		<key>UISupportedInterfaceOrientations~ipad</key>
-		<array>
-			<string>UIInterfaceOrientationPortrait</string>
-			<string>UIInterfaceOrientationPortraitUpsideDown</string>
-			<string>UIInterfaceOrientationLandscapeLeft</string>
-			<string>UIInterfaceOrientationLandscapeRight</string>
-		</array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+      <string>UIInterfaceOrientationPortrait</string>
+      <string>UIInterfaceOrientationPortraitUpsideDown</string>
+      <string>UIInterfaceOrientationLandscapeLeft</string>
+      <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    
+    <!-- Permissions -->
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Ứng dụng cần quyền truy cập vị trí để xác định địa chỉ của bạn.</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>Ứng dụng cần quyền truy cập vị trí để xác định địa chỉ của bạn.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Ứng dụng cần quyền truy cập camera để chụp ảnh đại diện.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Ứng dụng cần quyền truy cập thư viện ảnh để chọn ảnh đại diện.</string>
 		<key>CADisableMinimumFrameDurationOnPhone</key>
 		<true/>
 		<key>UIApplicationSupportsIndirectInputEvents</key>

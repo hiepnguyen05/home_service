@@ -38,6 +38,8 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
   String _selectedAddressType = AddressType.home;
   double? _latitude;
   double? _longitude;
+  bool _usedCurrentLocation =
+      false; // Flag để biết người dùng có dùng GPS không
 
   bool get _isEditing => widget.address != null;
 
@@ -76,6 +78,8 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
         _fullNameController.text = user.fullName;
         _phoneController.text = user.phone;
       }
+      // Khởi tạo tiêu đề với loại địa chỉ mặc định
+      _titleController.text = _selectedAddressType;
     }
   }
 
@@ -177,8 +181,10 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
                                   hint: 'Phường/Xã',
                                   prefixIcon:
                                       const Icon(Icons.location_city_outlined),
-                                  validator: (value) => viewModel
-                                      .validateLocation(value, 'phường/xã'),
+                                  validator: (value) => _usedCurrentLocation
+                                      ? null
+                                      : viewModel.validateLocationRequired(
+                                          value, 'phường/xã'),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -188,8 +194,10 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
                                   hint: 'Quận/Huyện',
                                   prefixIcon:
                                       const Icon(Icons.location_city_outlined),
-                                  validator: (value) => viewModel
-                                      .validateLocation(value, 'quận/huyện'),
+                                  validator: (value) => _usedCurrentLocation
+                                      ? null
+                                      : viewModel.validateLocationRequired(
+                                          value, 'quận/huyện'),
                                 ),
                               ),
                             ],
@@ -202,8 +210,10 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
                             hint: 'Tỉnh/Thành phố',
                             prefixIcon:
                                 const Icon(Icons.location_city_outlined),
-                            validator: (value) => viewModel.validateLocation(
-                                value, 'tỉnh/thành phố'),
+                            validator: (value) => _usedCurrentLocation
+                                ? null
+                                : viewModel.validateLocationRequired(
+                                    value, 'tỉnh/thành phố'),
                           ),
 
                           const SizedBox(height: 16),
@@ -421,17 +431,22 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
         _latitude = position.latitude;
         _longitude = position.longitude;
 
-        // Lấy địa chỉ từ tọa độ
-        final addressString = await LocationService.getAddressFromCoordinates(
+        // Lấy chi tiết địa chỉ
+        final addressDetails = await LocationService.getLocationDetails(
           position.latitude,
           position.longitude,
         );
 
-        // Parse địa chỉ string thành các thành phần
-        // Tạm thời set địa chỉ đầy đủ vào address field
+        // Autofill các trường
         setState(() {
-          _addressController.text = addressString;
-          // Có thể thêm logic parse địa chỉ thành các thành phần riêng biệt
+          _usedCurrentLocation = true; // Đánh dấu đã dùng GPS
+          _addressController.text = addressDetails['address'] ?? '';
+          _wardController.text = addressDetails['ward'] ?? '';
+          _districtController.text = addressDetails['district'] ?? '';
+          _cityController.text = addressDetails['city'] ?? '';
+
+          // Debug check
+          print('Autofilled: ${addressDetails.toString()}');
         });
       }
 

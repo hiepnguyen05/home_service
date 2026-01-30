@@ -1,34 +1,51 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { AdminLogin } from './pages/Login/index.jsx'
+import { AdminDashboard } from './pages/Dashboard/index.jsx'
+import ServiceManager from './pages/Services/ServiceManager.jsx'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+import AdminLayout from './components/Layout/AdminLayout';
+import CategoriesManager from './pages/Categories/CategoriesManager';
+import { WorkerApplications } from './pages/WorkerApplications';
 
+function App() {
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <Router>
+      <Routes>
+        {/* Trang chủ mặc định chuyển hướng đến trang đăng nhập admin */}
+        <Route path="/" element={<Navigate to="/admin-login" />} />
+        {/* Trang đăng nhập admin */}
+        <Route path="/admin-login" element={<AdminLogin />} />
+
+        {/* Các trang Admin cần Layout */}
+        <Route path="/admin-dashboard" element={
+          <AdminLayout>
+            <AdminDashboard />
+          </AdminLayout>
+        } />
+
+        <Route path="/services" element={
+          <AdminLayout>
+            <ServiceManager />
+          </AdminLayout>
+        } />
+
+        <Route path="/categories" element={
+          <AdminLayout>
+            <CategoriesManager />
+          </AdminLayout>
+        } />
+
+        <Route path="/worker-applications" element={
+          <AdminLayout>
+            <WorkerApplications />
+          </AdminLayout>
+        } />
+
+        {/* Redirect for convenience during dev */}
+        <Route path="/admin" element={<Navigate to="/admin-dashboard" />} />
+      </Routes>
+    </Router>
   )
 }
 
