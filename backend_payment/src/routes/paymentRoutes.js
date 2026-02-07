@@ -104,6 +104,59 @@ router.post('/ipn', async (req, res) => {
     }
 });
 
+// POST /api/payment/callback
+// Alias cho /ipn - để khớp với IPN_URL trên Render
+router.post('/callback', async (req, res) => {
+    console.log("========== CALLBACK (Alias for IPN) RECEIVED ==========");
+    console.log("[CALLBACK] Full body:", JSON.stringify(req.body, null, 2));
+    try {
+        const data = req.body;
+
+        console.log(`[CALLBACK] orderId: ${data.orderId}`);
+        console.log(`[CALLBACK] resultCode: ${data.resultCode}`);
+        console.log(`[CALLBACK] transId: ${data.transId}`);
+        console.log(`[CALLBACK] message: ${data.message}`);
+
+        // 1. Verify chữ ký
+        console.log(`[CALLBACK] Verifying signature...`);
+        const isValid = momoService.verifyIpnSignature(data);
+        console.log(`[CALLBACK] Signature valid: ${isValid}`);
+
+        if (!isValid) {
+            console.error("[CALLBACK] INVALID SIGNATURE!");
+            return res.status(200).json({ message: 'Invalid signature' });
+        }
+
+        // 2. Xác định trạng thái
+        let status = 'failed';
+        if (data.resultCode == 0) {
+            status = 'success';
+        } else if (data.resultCode == 9000) {
+            status = 'pending';
+        }
+        console.log(`[CALLBACK] Determined status: ${status}`);
+
+        // 3. Cập nhật Database
+        console.log(`[CALLBACK] Updating Firestore...`);
+        await paymentService.updatePaymentStatus(
+            data.orderId,
+            status,
+            data.transId,
+            data.resultCode,
+            data.message
+        );
+        console.log(`[CALLBACK] ✅ Firestore updated successfully!`);
+
+        // 4. Phản hồi cho MoMo
+        console.log(`[CALLBACK] Sending 204 response to MoMo`);
+        res.status(204).send();
+
+    } catch (error) {
+        console.error("[CALLBACK] Error:", error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
+
 // GET /api/payment/status/:orderId
 // App gọi để check trạng thái thủ công (nếu không dùng realtime listener)
 router.get('/status/:orderId', async (req, res) => {
