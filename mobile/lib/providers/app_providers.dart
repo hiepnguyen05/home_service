@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/features/address/data/repositories/address_repository.dart';
+import 'package:mobile/features/address/viewmodel/address_viewmodel.dart';
 import 'package:provider/provider.dart';
 import '../features/permission/viewmodel/permission_viewmodel.dart';
 import '../features/auth/viewmodel/auth_viewmodel.dart';
@@ -21,9 +23,10 @@ class AppProviders extends StatelessWidget {
         Provider(create: (_) => AuthRepository()),
         Provider(create: (_) => ServiceRepository()),
         Provider(create: (_) => PartnerRepository()),
-
+        Provider(create: (_) => AddressRepository()),
         // ViewModels
         ChangeNotifierProvider(create: (_) => PermissionViewModel()),
+        ChangeNotifierProvider(create: (_) => AddressViewModel()),
         ChangeNotifierProxyProvider<AuthRepository, AuthViewModel>(
           create: (context) => AuthViewModel(
             authRepository: context.read<AuthRepository>(),
@@ -37,10 +40,6 @@ class AppProviders extends StatelessWidget {
           ),
           update: (context, repository, previous) =>
               previous ?? ServicesViewModel(repository: repository),
-          // Note: Re-creating ViewModel on repo update might lose state.
-          // Better to use a proxy that just updates dependency if needed,
-          // but for now this is standard simple DI.
-          // Actually, ServiceRepository is a Provider (singleton-ish), so it won't change often.
         ),
         ChangeNotifierProxyProvider<PartnerRepository, PartnerViewModel>(
           create: (context) => PartnerViewModel(

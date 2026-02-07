@@ -1,6 +1,6 @@
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'package:flutter/material.dart';
-import 'package:mobile/core/constants/app_colors.dart' show AppColors;
+import '../../../../../core/constants/app_colors.dart' show AppColors;
 
 class BookingDatePicker extends StatelessWidget {
   final DateTime selectedDate;

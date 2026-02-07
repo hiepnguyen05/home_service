@@ -54,7 +54,11 @@ class ServiceDetailScreen extends StatelessWidget {
         ],
       ),
       bottomNavigationBar: BottomCTASection(onBookingPressed: () {
-        Navigator.pushNamed(context, AppRoutes.bookingTime);
+        Navigator.pushNamed(
+          context,
+          AppRoutes.bookingTime,
+          arguments: service.id,
+        );
       }),
     );
   }

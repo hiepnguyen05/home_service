@@ -23,5 +23,6 @@ class AppColors {
 
   // Border colors
   static const Color borderLight = Color(0xFFE2E8F0);
+  static const Color borderColor = borderLight; // Alias for compatibility
   static const Color borderFocus = Color(0xFF4CAF50);
 }

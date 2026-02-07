@@ -18,6 +18,7 @@ import '../features/partner/view/screens/service_pricing_screen.dart';
 import '../features/partner/view/screens/partner_pending_screen.dart';
 import '../features/provider/view/screens/provider_main_screen.dart';
 import '../features/booking/view/screens/booking_time_screen.dart';
+import '../features/booking/view/screens/booking_address_screen.dart';
 
 class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -62,8 +63,20 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const ServicePricingScreen());
       case AppRoutes.partnerPending:
         return MaterialPageRoute(builder: (_) => const PartnerPendingScreen());
+      case AppRoutes.bookingAddress:
+        final serviceId = settings.arguments as String;
+        return MaterialPageRoute(
+          builder: (_) => BookingAddressScreen(
+            serviceId: serviceId,
+            bookingTime:
+                DateTime.now(), // Fallback if navigated via named route
+          ),
+        );
       case AppRoutes.bookingTime:
-        return MaterialPageRoute(builder: (_) => const BookingTimeScreen());
+        final serviceId = settings.arguments as String;
+        return MaterialPageRoute(
+          builder: (_) => BookingTimeScreen(serviceId: serviceId),
+        );
       default:
         return MaterialPageRoute(
           builder: (_) => const SplashScreen(), // Default to splash screen

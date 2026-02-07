@@ -36,10 +36,6 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
         backgroundColor: AppColors.white,
         elevation: 0,
       ),
@@ -151,24 +147,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     isLoading: authViewModel.isLoading,
                   ),
 
-                  const SizedBox(height: AppSizes.spacingMedium),
-
-                  // Login with OTP Button
-                  AppButton(
-                    text: AppTexts.loginWithOtpButton,
-                    type: AppButtonType.outline,
-                    onPressed: () {
-                      // TODO: Implement OTP login
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Tính năng đăng nhập OTP sẽ được phát triển',
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
                   const SizedBox(height: AppSizes.spacingXLarge),
 
                   // Register Link
@@ -225,7 +203,12 @@ class _LoginScreenState extends State<LoginScreen> {
           buttonText: 'Tiếp tục',
           onPressed: () {
             Navigator.of(context).pop(); // Đóng dialog
-            Navigator.pushReplacementNamed(context, AppRoutes.home);
+
+            if (authViewModel.currentUser?.role == 'provider') {
+              Navigator.pushReplacementNamed(context, AppRoutes.providerHome);
+            } else {
+              Navigator.pushReplacementNamed(context, AppRoutes.home);
+            }
           },
         );
       } else if (mounted && authViewModel.errorMessage != null) {

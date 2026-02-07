@@ -294,4 +294,62 @@ class LocationService {
 
     return result;
   }
+
+  /// Tìm tọa độ từ địa chỉ (Forward Geocoding)
+  static Future<Map<String, dynamic>?> getCoordinatesFromAddress(
+      String address) async {
+    try {
+      print('Đang tìm tọa độ cho địa chỉ: $address');
+
+      // 1. Thử dùng thư viện native (Google/iOS Geocoder)
+      List<Location> locations = await locationFromAddress(address)
+          .timeout(const Duration(seconds: 10));
+
+      if (locations.isNotEmpty) {
+        final loc = locations[0];
+        return {
+          'latitude': loc.latitude,
+          'longitude': loc.longitude,
+          'display_name': address, // Thư viện native ít trả về tên chuẩn
+        };
+      }
+    } catch (e) {
+      print('Lỗi native forward geocoding: $e');
+      print('Chuyển sang dùng OpenStreetMap Search API...');
+      return await _getCoordinatesFromAddressFallback(address);
+    }
+    return null;
+  }
+
+  /// Fallback tìm kiếm địa chỉ dùng OpenStreetMap API
+  static Future<Map<String, dynamic>?> _getCoordinatesFromAddressFallback(
+      String query) async {
+    try {
+      final url = Uri.parse(
+          'https://nominatim.openstreetmap.org/search?q=$query&format=json&limit=1&addressdetails=1');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'User-Agent': 'HomeServiceApp/1.0',
+          'Accept-Language': 'vi',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final List data = json.decode(response.body);
+        if (data.isNotEmpty) {
+          final firstResult = data[0];
+          return {
+            'latitude': double.parse(firstResult['lat']),
+            'longitude': double.parse(firstResult['lon']),
+            'display_name': firstResult['display_name'],
+          };
+        }
+      }
+    } catch (e) {
+      print('Lỗi fallback search: $e');
+    }
+    return null;
+  }
 }

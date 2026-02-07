@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/core/constants/app_colors.dart';
+import '../../../../../core/constants/app_colors.dart';
 
 class BookingTimeSlot extends StatelessWidget {
   final String title;

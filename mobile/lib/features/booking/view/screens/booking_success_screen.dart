@@ -1,0 +1,107 @@
+import 'package:flutter/material.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../../provider/data/models/provider_model.dart';
+import '../../../payment/data/models/payment_method.dart';
+import '../widgets/success/success_header.dart';
+import '../widgets/success/order_info_card.dart';
+import '../widgets/success/success_action_buttons.dart';
+
+class BookingSuccessScreen extends StatelessWidget {
+  final String bookingId;
+  final ProviderModel provider;
+  final String serviceName;
+  final DateTime bookingTime;
+  final PaymentMethod paymentMethod;
+  final int? travelTimeMinutes;
+
+  const BookingSuccessScreen({
+    super.key,
+    required this.bookingId,
+    required this.provider,
+    required this.serviceName,
+    required this.bookingTime,
+    required this.paymentMethod,
+    this.travelTimeMinutes,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        title: const Text("Chi tiết đơn hàng"),
+        centerTitle: true,
+        backgroundColor: const Color(0xFFF8FAFC),
+        elevation: 0,
+        leading: BackButton(
+          color: AppColors.textPrimary,
+          onPressed: () {
+            // Quay về trang chủ, xóa luồng đặt lịch
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          },
+        ),
+        titleTextStyle: const TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: Column(
+          children: [
+            // 1. Header (Icon, Tiêu đề, Phụ đề)
+            SuccessHeader(
+              paymentMethod: paymentMethod,
+              bookingTime: bookingTime,
+              travelTimeMinutes: travelTimeMinutes,
+            ),
+
+            const SizedBox(height: 32),
+
+            // 2. Mã đơn hàng
+            OrderInfoCard(bookingId: bookingId),
+
+            const SizedBox(height: 32),
+
+            // 3. Nút hành động
+            SuccessActionButtons(provider: provider),
+
+            const SizedBox(height: 32),
+
+            // 4. Nút theo dõi đơn hàng
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  // TODO: Chuyển sang màn hình theo dõi
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Mở theo dõi đơn...")),
+                  );
+                },
+                icon: const Icon(Icons.map_outlined, color: Colors.white),
+                label: const Text(
+                  "Theo dõi đơn đặt lịch",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  elevation: 4,
+                  shadowColor: AppColors.primary.withOpacity(0.3),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

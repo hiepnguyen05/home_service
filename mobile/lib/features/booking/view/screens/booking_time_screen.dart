@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/features/booking/view/widgets/booking_date_picker.dart';
+import '../widgets/time/booking_date_picker.dart';
+import '../widgets/common/booking_stepper.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../widgets/booking_time_slot.dart';
+import '../widgets/time/booking_time_slot.dart';
+import '../widgets/time/instant_booking_option.dart';
+import 'booking_address_screen.dart';
 
 class BookingTimeScreen extends StatefulWidget {
-  const BookingTimeScreen({super.key});
+  final String serviceId;
+  const BookingTimeScreen({super.key, required this.serviceId});
 
   @override
   State<BookingTimeScreen> createState() => _BookingTimeScreenState();
@@ -17,7 +21,8 @@ class _BookingTimeScreenState extends State<BookingTimeScreen> {
   final morningSlots = ["07:00", "08:00", "09:00", "10:00", "11:00"];
   final afternoonSlots = ["13:00", "14:00", "15:00", "16:00", "17:00"];
   final eveningSlots = ["18:00", "19:00", "20:00", "21:00", "22:00"];
-  // Hàm lọc danh sách giờ: Chỉ lấy những giờ chưa trôi qua
+
+  /// Lọc danh sách giờ: Chỉ lấy những giờ chưa trôi qua nếu chọn ngày hôm nay
   List<String> _getAvailableSlots(List<String> originalSlots) {
     final now = DateTime.now();
 
@@ -59,6 +64,9 @@ class _BookingTimeScreenState extends State<BookingTimeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 8),
+            // Thanh tiến trình
+            const Center(child: BookingStepper(currentStep: 0)),
+            const SizedBox(height: 16),
             const Text(
               "Chọn ngày",
               style: TextStyle(
@@ -79,65 +87,24 @@ class _BookingTimeScreenState extends State<BookingTimeScreen> {
             const SizedBox(
               height: 24,
             ),
+            // Tùy chọn đặt ngay bây giờ (chỉ hiện nếu chọn hôm nay)
             if (_selectedDate.year == DateTime.now().year &&
                 _selectedDate.month == DateTime.now().month &&
                 _selectedDate.day == DateTime.now().day)
-              InkWell(
-                  onTap: () {
-                    setState(() {
-                      _selectedDate = DateTime.now();
-                      _selectedTime = "Ngay bây giờ";
-                    });
-                  },
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                            color: _selectedTime == "Ngay bây giờ"
-                                ? AppColors.primary
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                                width: 2.0,
-                                color: _selectedTime == "Ngay bây giờ"
-                                    ? AppColors.primary
-                                    : AppColors.primary)),
-                        child: Center(
-                            child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.flash_on,
-                              color: _selectedTime == "Ngay bây giờ"
-                                  ? Colors.white
-                                  : AppColors.primary,
-                            ),
-                            Text(
-                              "Đặt lịch ngay bây giờ",
-                              style: TextStyle(
-                                color: _selectedTime == "Ngay bây giờ"
-                                    ? Colors.white
-                                    : AppColors.primary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        )),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        "Dành cho khách hàng cần dịch vụ ngay lập tức",
-                        style: TextStyle(color: AppColors.textHint),
-                      )
-                    ],
-                  )),
+              InstantBookingOption(
+                isSelected: _selectedTime == "Ngay bây giờ",
+                onTap: () {
+                  setState(() {
+                    _selectedDate = DateTime.now();
+                    _selectedTime = "Ngay bây giờ";
+                  });
+                },
+              ),
+
             Container(
               height: 15,
-              color: Colors.white,
+              color: Colors
+                  .white, // Separator hack (should be sized box or divider)
             ),
             const Text(
               "Chọn khung giờ",
@@ -202,9 +169,35 @@ class _BookingTimeScreenState extends State<BookingTimeScreen> {
         child: ElevatedButton(
           onPressed: _selectedTime != null
               ? () {
-                  // TODO: Chuyển sang màn hình Tiếp theo
-                  print(
-                      "Lịch đặt: ${_selectedDate.day}/${_selectedDate.month} lúc $_selectedTime");
+                  DateTime bookingTime;
+
+                  // Trường hợp đặc biệt: "Ngay bây giờ" - sử dụng thời gian hiện tại
+                  if (_selectedTime == "Ngay bây giờ") {
+                    bookingTime = DateTime.now();
+                  } else {
+                    // Phân tích chuỗi thời gian - định dạng "HH:MM"
+                    final timeParts = _selectedTime!.split(':');
+                    final hour = int.parse(timeParts[0]);
+                    final minute = int.parse(timeParts[1]);
+
+                    bookingTime = DateTime(
+                      _selectedDate.year,
+                      _selectedDate.month,
+                      _selectedDate.day,
+                      hour,
+                      minute,
+                    );
+                  }
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => BookingAddressScreen(
+                        serviceId: widget.serviceId,
+                        bookingTime: bookingTime,
+                      ),
+                    ),
+                  );
                 }
               : null, // Disable nút khi chưa chọn giờ
           style: ElevatedButton.styleFrom(

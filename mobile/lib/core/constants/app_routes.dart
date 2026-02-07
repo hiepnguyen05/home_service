@@ -18,4 +18,5 @@ class AppRoutes {
   static const String servicePricing = '/service-pricing';
   static const String partnerPending = '/partner-pending';
   static const String bookingTime = '/booking-time';
+  static const String bookingAddress = '/booking-address';
 }
