@@ -6,15 +6,22 @@ const path = require('path');
 const serviceAccountPath = path.join(__dirname, '../../serviceAccountKey.json');
 
 try {
-    const serviceAccount = require(serviceAccountPath);
+    let serviceAccount;
+    // Ưu tiên đọc từ biến môi trường (cho Render/Vercel)
+    if (process.env.SERVICE_ACCOUNT_KEY) {
+        serviceAccount = JSON.parse(process.env.SERVICE_ACCOUNT_KEY);
+    } else {
+        // Fallback đọc từ file local (cho development)
+        serviceAccount = require(serviceAccountPath);
+    }
+
     admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        // databaseURL: "https://your-project.firebaseio.com" // Không cần thiết với Firestore
+        credential: admin.credential.cert(serviceAccount)
     });
     console.log('Firebase Admin Initialized successfully');
 } catch (error) {
     console.error('Error initializing Firebase Admin:', error.message);
-    console.log('Please make sure serviceAccountKey.json exists in root or config folder');
+    console.log('Please set SERVICE_ACCOUNT_KEY env var or ensure serviceAccountKey.json exists');
 }
 
 const db = admin.firestore();
