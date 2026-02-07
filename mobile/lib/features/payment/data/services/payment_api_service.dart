@@ -36,9 +36,9 @@ class PaymentApiService {
   // Lưu ý: Đối với Android Emulator, localhost là 10.0.2.2
   // Nhưng ở đây dùng ngrok nên cứ dùng URL ngrok cho tiện
   static const String baseUrl =
-      'https://braylen-noisiest-biennially.ngrok-free.dev/api/payment';
-
-  /// Tạo yêu cầu thanh toán MoMo
+      'https://home-service-vjf7.onrender.com/api/payment'; // Production URL on Render
+  // static const String baseUrl = 'http://10.0.2.2:3000/api/payment'; // Localhost for Android Emulator
+  // static const String baseUrl = 'http://localhost:3000/api/payment'; // Localhost for iOS Simulator yêu cầu thanh toán MoMo
   Future<MoMoPaymentResult> createMoMoPayment({
     required String bookingId,
     required double amount,
@@ -105,5 +105,28 @@ class PaymentApiService {
 
     final Uri uri = Uri.parse(payUrl);
     return await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  /// Xác nhận thanh toán thủ công (backup khi IPN không về)
+  Future<bool> confirmPayment(String orderId, String resultCode) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/confirm'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'orderId': orderId,
+          'resultCode': resultCode,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('[CONFIRM_API] Error: $e');
+      return false;
+    }
   }
 }

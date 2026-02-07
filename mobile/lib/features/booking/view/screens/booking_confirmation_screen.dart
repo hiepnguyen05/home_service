@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:app_links/app_links.dart';
+import 'dart:async';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/distance_service.dart';
 import '../../../../core/widgets/app_dialog.dart';
@@ -15,6 +17,7 @@ import '../widgets/common/booking_stepper.dart';
 
 import '../../../../features/payment/viewmodel/payment_viewmodel.dart';
 import '../../../../features/payment/view/screens/momo_payment_screen.dart';
+import '../../../../features/payment/data/services/payment_api_service.dart';
 
 class BookingConfirmationScreen extends StatefulWidget {
   final ProviderModel provider;
@@ -45,15 +48,128 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
   late BookingViewModel _bookingViewModel;
   late PaymentViewModel _paymentViewModel;
 
+  late AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
+
   @override
   void initState() {
     super.initState();
     _bookingViewModel = BookingViewModel();
     _paymentViewModel = PaymentViewModel();
+    _initDeepLinkListener();
+  }
+
+  void _initDeepLinkListener() {
+    debugPrint('[DEEPLINK] Initializing AppLinks listener...');
+    _appLinks = AppLinks();
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      debugPrint('[DEEPLINK] 🔔 Received URI: $uri');
+      debugPrint('[DEEPLINK] Scheme: ${uri.scheme}, Host: ${uri.host}');
+      if (uri.scheme == 'homeservice' && uri.host == 'payment-callback') {
+        debugPrint('[DEEPLINK] ✅ Matched payment-callback!');
+        _handlePaymentCallback(uri);
+      } else {
+        debugPrint('[DEEPLINK] ❌ Did not match expected scheme/host');
+      }
+    });
+    debugPrint('[DEEPLINK] Listener started successfully');
+  }
+
+  void _handlePaymentCallback(Uri uri) {
+    debugPrint('[DEEPLINK] Handling callback URI: $uri');
+    // Ví dụ URL: homeservice://payment-callback?orderId=...&resultCode=0...
+    final resultCode = uri.queryParameters['resultCode'];
+    final orderId = uri.queryParameters['orderId'];
+    debugPrint('[DEEPLINK] resultCode: $resultCode, orderId: $orderId');
+
+    // Đóng màn hình MoMo webview/app nếu đang mở (nếu cần)
+    // Nhưng thường khi quay lại app thì màn hình hiện tại vẫn là BookingConfirmationScreen
+    // hoặc MoMoPaymentScreen (nếu push).
+    // Ở đây ta giả sử người dùng quay lại màn hình này.
+
+    if (resultCode == '0') {
+      // Thanh toán thành công từ phía MoMo
+      // Gọi API confirm để cập nhật status (backup khi IPN không về)
+      if (orderId != null) {
+        _confirmAndFinish(orderId, resultCode ?? '0');
+      }
+    } else {
+      // Thất bại
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Thanh toán thất bại. Mã lỗi: $resultCode')),
+      );
+    }
+  }
+
+  Future<void> _confirmAndFinish(String orderId, String resultCode) async {
+    debugPrint('[DEEPLINK] Calling confirmPayment API...');
+    DialogUtils.showLoading(context, message: "Đang xác nhận thanh toán...");
+
+    final apiService = PaymentApiService();
+
+    // Gọi API confirm để cập nhật status trong DB
+    final confirmed = await apiService.confirmPayment(orderId, resultCode);
+    debugPrint('[DEEPLINK] confirmPayment result: $confirmed');
+
+    // Check status sau khi confirm
+    final success = await _paymentViewModel.checkPaymentStatus(orderId);
+    debugPrint('[DEEPLINK] Final status check: $success');
+
+    if (!mounted) return;
+    DialogUtils.hideLoading(context);
+
+    if (success || confirmed) {
+      debugPrint('[DEEPLINK] ✅ Payment confirmed! Navigating to success...');
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BookingSuccessScreen(
+            bookingId: orderId,
+            provider: widget.provider,
+            serviceName: widget.serviceName,
+            bookingTime: widget.bookingTime,
+            paymentMethod: PaymentMethod.momo,
+            travelTimeMinutes: 0,
+          ),
+        ),
+      );
+    } else {
+      debugPrint('[DEEPLINK] ❌ Payment not confirmed');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Giao dịch chưa hoàn tất hoặc thất bại.')),
+      );
+    }
+  }
+
+  Future<void> _verifyPaymentAndFinish(String orderId) async {
+    DialogUtils.showLoading(context, message: "Đang kiểm tra kết quả...");
+    final success = await _paymentViewModel.checkPaymentStatus(orderId);
+    DialogUtils.hideLoading(context);
+
+    if (success) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BookingSuccessScreen(
+            bookingId: orderId,
+            provider: widget.provider,
+            serviceName: widget.serviceName,
+            bookingTime: widget.bookingTime,
+            paymentMethod: PaymentMethod.momo,
+            travelTimeMinutes: 0,
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Giao dịch chưa hoàn tất hoặc thất bại.')),
+      );
+    }
   }
 
   @override
   void dispose() {
+    _linkSubscription?.cancel();
     _bookingViewModel.dispose();
     _paymentViewModel.dispose();
     super.dispose();

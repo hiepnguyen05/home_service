@@ -45,7 +45,10 @@ class MomoService {
         };
 
         try {
-            console.log("Sending request to MoMo:", requestBody);
+            console.log("======== MOMO REQUEST ========");
+            console.log("IPN URL being sent:", momoConfig.ipnUrl);
+            console.log("Redirect URL:", momoConfig.redirectUrl);
+            console.log("Full request body:", JSON.stringify(requestBody, null, 2));
             const response = await axios.post(momoConfig.endpoint, requestBody);
             return response.data;
         } catch (error) {

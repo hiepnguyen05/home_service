@@ -79,20 +79,30 @@ class _MoMoPaymentScreenState extends State<MoMoPaymentScreen> {
 
     try {
       final orderId = widget.paymentResult.orderId;
-      if (orderId == null) return;
+      debugPrint('[MOMO_POLL] Checking status for orderId: $orderId');
+      if (orderId == null) {
+        debugPrint('[MOMO_POLL] ERROR: orderId is null!');
+        return;
+      }
 
       final result = await _apiService.checkPaymentStatus(orderId);
+      debugPrint('[MOMO_POLL] API Response: $result');
+
       final data = result['data'];
       final status = data?['status'];
+      debugPrint('[MOMO_POLL] Status from DB: $status');
 
       if (status == 'success' && mounted) {
+        debugPrint('[MOMO_POLL] ✅ Payment SUCCESS! Navigating...');
         _pollingTimer?.cancel();
         _countdownTimer?.cancel();
         Navigator.pop(context);
         widget.onPaymentComplete(true);
+      } else {
+        debugPrint('[MOMO_POLL] ⏳ Status not success yet, will retry in 3s...');
       }
     } catch (e) {
-      debugPrint('Check status error: $e');
+      debugPrint('[MOMO_POLL] ❌ Check status error: $e');
     } finally {
       if (mounted) {
         setState(() => _isCheckingStatus = false);

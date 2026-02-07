@@ -134,5 +134,39 @@ router.get('/status/:orderId', async (req, res) => {
         });
     }
 });
+// POST /api/payment/confirm
+// App gọi để xác nhận thanh toán thủ công (backup khi IPN không về)
+router.post('/confirm', async (req, res) => {
+    console.log("========== MANUAL CONFIRM ==========");
+    console.log("[CONFIRM] Body:", JSON.stringify(req.body, null, 2));
+
+    try {
+        const { orderId, resultCode } = req.body;
+
+        if (!orderId) {
+            return res.status(400).json({ success: false, message: 'orderId is required' });
+        }
+
+        // Nếu resultCode = 0 (từ redirect URL) -> cập nhật thành success
+        if (resultCode == 0 || resultCode == '0') {
+            console.log(`[CONFIRM] Updating orderId ${orderId} to SUCCESS`);
+            await paymentService.updatePaymentStatus(
+                orderId,
+                'success',
+                null, // transId không có từ redirect
+                0,
+                'Confirmed via app redirect'
+            );
+            console.log(`[CONFIRM] ✅ Updated successfully!`);
+            res.json({ success: true, message: 'Payment confirmed' });
+        } else {
+            console.log(`[CONFIRM] resultCode is ${resultCode}, not updating`);
+            res.json({ success: false, message: 'Payment not successful' });
+        }
+    } catch (error) {
+        console.error("[CONFIRM] Error:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 
 module.exports = router;
