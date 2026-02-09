@@ -282,7 +282,11 @@ class _ServicePricingScreenState extends State<ServicePricingScreen> {
               height: 54,
               width: double.infinity,
               child: ElevatedButton(
+<<<<<<< Updated upstream
                 onPressed: _canProceed(viewModel)
+=======
+                onPressed: viewModel.selectedServiceIds.isNotEmpty
+>>>>>>> Stashed changes
                     ? () {
                         Navigator.pushNamed(context, AppRoutes.bioExperience);
                       }
