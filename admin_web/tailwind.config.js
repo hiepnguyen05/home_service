@@ -4,21 +4,23 @@ export default {
         "./index.html",
         "./src/**/*.{js,ts,jsx,tsx}",
     ],
+    darkMode: "class",
     theme: {
         extend: {
             colors: {
-                "primary": "#19e620",
-                "background-light": "#f6f8f6",
-                "background-dark": "#112111",
-                "surface-light": "#ffffff",
-                "surface-dark": "#1a2e1a",
-                "text-light": "#1f2937",
-                "text-dark": "#e5e7eb",
-                "text-secondary-light": "#6b7280",
-                "text-secondary-dark": "#9ca3af"
+                "primary": "#4CAE4F",
+                "primary-hover": "#439d46",
+                "background-light": "#f8fafc",
+                "background-dark": "#0f172a",
             },
             fontFamily: {
                 "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
             },
         },
     },
