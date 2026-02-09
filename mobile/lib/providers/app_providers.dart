@@ -9,6 +9,8 @@ import '../features/services/data/repositories/service_repository.dart';
 import '../features/services/viewmodel/services_viewmodel.dart';
 import '../features/partner/data/repositories/partner_repository.dart';
 import '../features/partner/viewmodel/partner_viewmodel.dart';
+import '../features/provider/data/repositories/provider_repository.dart';
+import '../features/home/viewmodel/home_viewmodel.dart';
 
 class AppProviders extends StatelessWidget {
   final Widget child;
@@ -24,6 +26,7 @@ class AppProviders extends StatelessWidget {
         Provider(create: (_) => ServiceRepository()),
         Provider(create: (_) => PartnerRepository()),
         Provider(create: (_) => AddressRepository()),
+        Provider(create: (_) => ProviderRepository()),
         // ViewModels
         ChangeNotifierProvider(create: (_) => PermissionViewModel()),
         ChangeNotifierProvider(create: (_) => AddressViewModel()),
@@ -47,6 +50,13 @@ class AppProviders extends StatelessWidget {
           ),
           update: (context, repository, previous) =>
               previous ?? PartnerViewModel(repository: repository),
+        ),
+        ChangeNotifierProxyProvider<ProviderRepository, HomeViewModel>(
+          create: (context) => HomeViewModel(
+            providerRepository: context.read<ProviderRepository>(),
+          ),
+          update: (context, repository, previous) =>
+              previous ?? HomeViewModel(providerRepository: repository),
         ),
       ],
       child: child,

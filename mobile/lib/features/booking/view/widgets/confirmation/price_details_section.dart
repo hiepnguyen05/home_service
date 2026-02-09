@@ -27,11 +27,6 @@ class PriceDetailsSection extends StatelessWidget {
       child: Column(
         children: [
           _buildRow("Giá dịch vụ", servicePrice, currencyFormatter),
-          // const SizedBox(height: 12),
-          // _buildRow("Phí nền tảng", platformFee, currencyFormatter),
-          // const Divider(height: 24),
-          // _buildRow("Tổng cộng", servicePrice + platformFee, currencyFormatter,
-          //     isHighlight: true),
         ],
       ),
     );

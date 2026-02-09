@@ -52,6 +52,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
       // B0: Validate thông tin User trước khi bật
       DialogUtils.showLoading(context, message: "Đang kiểm tra hồ sơ...");
 
+      String? avatar; // Declare outside try block
       try {
         final userDoc = await FirebaseFirestore.instance
             .collection('users')
@@ -68,7 +69,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
         }
 
         final userData = userDoc.data() as Map<String, dynamic>;
-        final String? avatar = userData['avatar_url'];
+        avatar = userData['avatar_url']; // Assign here
         final String? phone = userData['phone'];
 
         List<String> missing = [];
@@ -116,7 +117,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
           longitude: position.longitude,
           address: address,
           name: currentUser?.displayName,
-          avatarUrl: currentUser?.photoURL,
+          avatarUrl: avatar ?? currentUser?.photoURL,
         );
 
         if (success) {

@@ -5,6 +5,7 @@ import '../../../../core/constants/app_routes.dart';
 import '../../viewmodel/partner_viewmodel.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import '../widgets/partner_progress_bar.dart';
 
 class CertificateUploadScreen extends StatefulWidget {
   const CertificateUploadScreen({super.key});
@@ -17,7 +18,7 @@ class CertificateUploadScreen extends StatefulWidget {
 class _CertificateUploadScreenState extends State<CertificateUploadScreen> {
   final ImagePicker _picker = ImagePicker();
 
-  Future<void> _pickImage(PartnerViewModel viewModel) async {
+  Future<void> _pickCertificate(PartnerViewModel viewModel) async {
     try {
       final List<XFile> images = await _picker.pickMultiImage();
       if (images.isNotEmpty) {
@@ -30,14 +31,25 @@ class _CertificateUploadScreenState extends State<CertificateUploadScreen> {
     }
   }
 
-  void _removeImage(PartnerViewModel viewModel, int index) {
+  Future<void> _pickPortrait(PartnerViewModel viewModel) async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        viewModel.setPortraitImage(File(image.path));
+      }
+    } catch (e) {
+      debugPrint('Error picking portrait: $e');
+    }
+  }
+
+  void _removeCertificate(PartnerViewModel viewModel, int index) {
     viewModel.removeCertificate(index);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.grey[50], // background-light
       appBar: AppBar(
         backgroundColor: Colors.grey[50],
         elevation: 0,
@@ -48,7 +60,7 @@ class _CertificateUploadScreenState extends State<CertificateUploadScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Tải lên Chứng chỉ',
+          'Tải lên Hồ sơ',
           style: TextStyle(
             color: AppColors.textPrimary,
             fontSize: 18,
@@ -60,53 +72,10 @@ class _CertificateUploadScreenState extends State<CertificateUploadScreen> {
         builder: (context, viewModel, child) {
           return Column(
             children: [
-              // Progress Bar (Segmented)
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Container(
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Container(
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Container(
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              // Progress Bar
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                child: PartnerProgressBar(currentStep: 2),
               ),
               Expanded(
                 child: SingleChildScrollView(
@@ -117,9 +86,9 @@ class _CertificateUploadScreenState extends State<CertificateUploadScreen> {
                       // Headline Text
                       const SizedBox(height: 16),
                       const Text(
-                        'Xác thực chứng chỉ nghề nghiệp của bạn',
+                        'Ảnh chân dung & Chứng chỉ',
                         style: TextStyle(
-                          fontSize: 28,
+                          fontSize: 26,
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
                           height: 1.2,
@@ -129,20 +98,96 @@ class _CertificateUploadScreenState extends State<CertificateUploadScreen> {
 
                       // Body Text
                       const Text(
-                        'Tải lên chứng chỉ để xây dựng lòng tin với khách hàng và hoàn tất hồ sơ của bạn.',
+                        'Ảnh chân dung chuyên nghiệp và chứng chỉ sẽ giúp bạn xây dựng uy tín.',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 15,
                           color: AppColors.textSecondary,
                           height: 1.5,
                         ),
                       ),
                       const SizedBox(height: 24),
 
-                      // Upload Area / Image Grid
+                      // Portrait Section
+                      const Text(
+                        'Ảnh chân dung',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: GestureDetector(
+                          onTap: () => _pickPortrait(viewModel),
+                          child: Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: viewModel.portraitImage != null
+                                    ? AppColors.primary
+                                    : AppColors.borderLight,
+                                width: 2,
+                              ),
+                              image: viewModel.portraitImage != null
+                                  ? DecorationImage(
+                                      image:
+                                          FileImage(viewModel.portraitImage!),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: viewModel.portraitImage == null
+                                ? const Icon(
+                                    Icons.person_add_alt_1,
+                                    color: AppColors.textSecondary,
+                                    size: 40,
+                                  )
+                                : null,
+                          ),
+                        ),
+                      ),
+                      if (viewModel.portraitImage == null)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8.0),
+                          child: Center(
+                            child: Text(
+                              'Nhấn để tải lên ảnh đại diện',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 32),
+
+                      // Certificate Section
+                      const Text(
+                        'Chứng chỉ nghề nghiệp',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Upload Area / Image Grid for Certificates
                       if (viewModel.certificateImages.isEmpty)
-                        _buildEmptyState(viewModel)
+                        _buildEmptyCertificateState(viewModel)
                       else
-                        _buildImageGrid(viewModel),
+                        _buildCertificateGrid(viewModel),
 
                       const SizedBox(height: 32),
 
@@ -150,7 +195,7 @@ class _CertificateUploadScreenState extends State<CertificateUploadScreen> {
                       _buildChecklistItem('Ảnh chụp rõ nét, không bị mờ'),
                       _buildChecklistItem(
                           'Đảm bảo thấy đủ 4 góc của chứng chỉ'),
-                      _buildChecklistItem('Không chụp ảnh bị lóa hay tối'),
+                      _buildChecklistItem('Ảnh chân dung cần nhìn rõ mặt'),
                     ],
                   ),
                 ),
@@ -159,44 +204,35 @@ class _CertificateUploadScreenState extends State<CertificateUploadScreen> {
               // Action Buttons
               Container(
                 padding: const EdgeInsets.all(16),
-                color: Colors.grey[50],
+                color: Colors.grey[50], // background-light
                 child: Column(
                   children: [
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: () => _pickImage(viewModel),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          elevation: 1,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(Icons.add, color: Colors.white),
-                            SizedBox(width: 8),
-                            Text(
-                              'Tải lên',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                    if (viewModel.certificateImages.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: OutlinedButton.icon(
+                            onPressed: () => _pickCertificate(viewModel),
+                            icon: const Icon(Icons.add_photo_alternate),
+                            label: const Text('Thêm chứng chỉ'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                              side: const BorderSide(color: AppColors.primary),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
                       height: 48,
                       child: ElevatedButton(
-                        onPressed: viewModel.certificateImages.isNotEmpty
+                        onPressed: (viewModel.certificateImages.isNotEmpty &&
+                                viewModel.portraitImage != null)
                             ? () {
                                 Navigator.pushNamed(
                                     context, AppRoutes.servicePricing);
@@ -204,11 +240,13 @@ class _CertificateUploadScreenState extends State<CertificateUploadScreen> {
                             : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
-                              viewModel.certificateImages.isNotEmpty
+                              (viewModel.certificateImages.isNotEmpty &&
+                                      viewModel.portraitImage != null)
                                   ? AppColors.primary
-                                  : Colors.grey[200],
+                                  : Colors.grey[300],
                           foregroundColor:
-                              viewModel.certificateImages.isNotEmpty
+                              (viewModel.certificateImages.isNotEmpty &&
+                                      viewModel.portraitImage != null)
                                   ? Colors.white
                                   : Colors.grey[500],
                           shape: RoundedRectangleBorder(
@@ -235,26 +273,26 @@ class _CertificateUploadScreenState extends State<CertificateUploadScreen> {
     );
   }
 
-  Widget _buildEmptyState(PartnerViewModel viewModel) {
+  Widget _buildEmptyCertificateState(PartnerViewModel viewModel) {
     return GestureDetector(
-      onTap: () => _pickImage(viewModel),
+      onTap: () => _pickCertificate(viewModel),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: AppColors.borderLight,
             style: BorderStyle.solid,
-            width: 2,
+            width: 1.5,
           ),
         ),
         child: Column(
           children: [
             Container(
-              width: 56,
-              height: 56,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 color: AppColors.primary.withOpacity(0.1),
                 shape: BoxShape.circle,
@@ -262,23 +300,23 @@ class _CertificateUploadScreenState extends State<CertificateUploadScreen> {
               child: const Icon(
                 Icons.upload_file,
                 color: AppColors.primary,
-                size: 32,
+                size: 28,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             const Text(
-              'Chạm để tải lên ảnh',
+              'Tải lên ảnh chứng chỉ',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             const Text(
-              'Tải lên ảnh chứng chỉ của bạn tại đây',
+              'Hỗ trợ JPG, PNG, PDF',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 color: AppColors.textSecondary,
               ),
             ),
@@ -288,46 +326,18 @@ class _CertificateUploadScreenState extends State<CertificateUploadScreen> {
     );
   }
 
-  Widget _buildImageGrid(PartnerViewModel viewModel) {
+  Widget _buildCertificateGrid(PartnerViewModel viewModel) {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+        crossAxisCount: 3,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
         childAspectRatio: 1.0,
       ),
-      itemCount: viewModel.certificateImages.length + 1,
+      itemCount: viewModel.certificateImages.length,
       itemBuilder: (context, index) {
-        if (index == viewModel.certificateImages.length) {
-          return GestureDetector(
-            onTap: () => _pickImage(viewModel),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.primary, width: 2),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.add, color: AppColors.primary, size: 32),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Thêm ảnh',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
         return Stack(
           children: [
             ClipRRect(
@@ -343,14 +353,14 @@ class _CertificateUploadScreenState extends State<CertificateUploadScreen> {
               top: 4,
               right: 4,
               child: GestureDetector(
-                onTap: () => _removeImage(viewModel, index),
+                onTap: () => _removeCertificate(viewModel, index),
                 child: Container(
-                  padding: const EdgeInsets.all(4),
+                  padding: const EdgeInsets.all(2),
                   decoration: const BoxDecoration(
                     color: Colors.black54,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.close, color: Colors.white, size: 16),
+                  child: const Icon(Icons.close, color: Colors.white, size: 14),
                 ),
               ),
             ),
@@ -362,25 +372,17 @@ class _CertificateUploadScreenState extends State<CertificateUploadScreen> {
 
   Widget _buildChecklistItem(String text) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Container(
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.check, color: AppColors.primary, size: 16),
-          ),
+          const Icon(Icons.check_circle, color: AppColors.primary, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               text,
               style: const TextStyle(
-                fontSize: 16,
-                color: AppColors.textPrimary,
+                fontSize: 14,
+                color: AppColors.textSecondary,
               ),
             ),
           ),

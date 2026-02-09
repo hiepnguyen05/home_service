@@ -17,6 +17,7 @@ import '../features/partner/view/screens/certificate_upload_screen.dart';
 import '../features/partner/view/screens/service_pricing_screen.dart';
 import '../features/partner/view/screens/partner_pending_screen.dart';
 import '../features/provider/view/screens/provider_main_screen.dart';
+import '../features/partner/view/screens/bio_experience_screen.dart';
 import '../features/booking/view/screens/booking_time_screen.dart';
 import '../features/booking/view/screens/booking_address_screen.dart';
 
@@ -53,7 +54,8 @@ class AppRouter {
         );
       case AppRoutes.partnerRegistration:
         return MaterialPageRoute(
-            builder: (_) => const PartnerRegistrationScreen());
+            builder: (_) => const PartnerRegistrationScreen(),
+            settings: settings);
       case AppRoutes.kycUpload:
         return MaterialPageRoute(builder: (_) => const KYCUploadScreen());
       case AppRoutes.certificateUpload:
@@ -61,6 +63,8 @@ class AppRouter {
             builder: (_) => const CertificateUploadScreen());
       case AppRoutes.servicePricing:
         return MaterialPageRoute(builder: (_) => const ServicePricingScreen());
+      case AppRoutes.bioExperience:
+        return MaterialPageRoute(builder: (_) => const BioExperienceScreen());
       case AppRoutes.partnerPending:
         return MaterialPageRoute(builder: (_) => const PartnerPendingScreen());
       case AppRoutes.bookingAddress:

@@ -19,10 +19,27 @@ class _PartnerRegistrationScreenState extends State<PartnerRegistrationScreen> {
   @override
   void initState() {
     super.initState();
-    _checkStatus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkStatus();
+    });
   }
 
   Future<void> _checkStatus() async {
+    // Check for forceRetry argument from PartnerPendingScreen
+    final args = ModalRoute.of(context)?.settings.arguments as Map?;
+    final forceRetry = args?['forceRetry'] ?? false;
+
+    if (forceRetry) {
+      debugPrint(
+          '[PartnerRegistrationScreen] Force retry detected, skipping status check');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+      return;
+    }
+
     debugPrint('[PartnerRegistrationScreen] _checkStatus called');
     final viewModel = Provider.of<PartnerViewModel>(context, listen: false);
     final status = await viewModel.checkExistingApplication();

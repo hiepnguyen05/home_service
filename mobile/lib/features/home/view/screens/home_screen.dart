@@ -7,19 +7,26 @@ import '../widgets/promotion_banner.dart';
 import '../widgets/worker_card.dart';
 
 import 'package:provider/provider.dart';
+import '../../../auth/viewmodel/auth_viewmodel.dart';
+import '../../viewmodel/home_viewmodel.dart';
 import '../../../services/viewmodel/services_viewmodel.dart';
 import '../../../services/view/screens/services_list_screen.dart';
 
-// ... (imports)
+// ... (previous imports)
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Access ViewModel
+    // Access ViewModels
     final servicesViewModel = context.watch<ServicesViewModel>();
+    final authViewModel = context.watch<AuthViewModel>();
+    final homeViewModel = context.watch<HomeViewModel>();
+
     final categories = servicesViewModel.categories;
+    final currentUser = authViewModel.currentUser;
+    final nearbyProviders = homeViewModel.nearbyProviders;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -29,8 +36,8 @@ class HomeScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               HomeAppBar(
-                userName: 'An',
-                // avatarUrl will use placeholder if null
+                userName: currentUser?.fullName ?? 'Khách',
+                avatarUrl: currentUser?.avatarUrl,
                 onNotificationTap: () {
                   // TODO: Handle notification tap
                 },
@@ -74,37 +81,69 @@ class HomeScreen extends StatelessWidget {
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  children: [
-                    WorkerCard(
-                      name: 'Lê Văn Mạnh',
-                      imageUrl:
-                          'https://lh3.googleusercontent.com/aida-public/AB6AXuAtnXswSw0blA-dQLG2GXyoGfg6cKyGPS-EsPECwLSGzXB4TTR1bgZrhtlG7STS3RI8V0cj2ylO1WwHjkp5uuRxVgQzUFyqcfW5etnMYIxoDYA6H_cgMD8iZnFmVw-SlQzAFRp6dVCT1dhnFftrAkTnZbhQQIwQcLJ-oFt97SVKWR7MV5Hh1lfEutgCboUkHJWfXsFi_FXvj3oA561ta43KkFdIsov0CFy_Y31AR8BMBBew_yWT1FcqTBwtJsR6KVWbo-J_zWNY-Rs',
-                      rating: 4.9,
-                      reviews: 128,
-                      distance: '2.1km',
-                      price: '250k/h',
-                      onBook: () {
-                        // TODO: Handle booking
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    WorkerCard(
-                      name: 'Trần Thị Bích',
-                      imageUrl:
-                          'https://lh3.googleusercontent.com/aida-public/AB6AXuDU6k__qFnv2mUqd7m5nQ2ZE-K_oBIMQkjGQq_z6p3NrxHqCJqbsMy6gGoHqoM4ecvmmpyC3I9X0RcVB7kp4xLFqR6OVsc2ppz4qaKaZ1XoW6stOVIVArtwA0iA4OlBLLcPfESiieXkPdqmfXf1Qvenbpul4dcYDn7IzGZUWh0mT8Tz5uRXac2pZ-Jik8jZaZPYyzgN_DaV7TaJ-RaPfdZM7zl0Prf2MBSoIoX_pEQ1zlW8LhBSEwAsbVoLW-LpRpep_jzohQYlL_U',
-                      rating: 4.8,
-                      reviews: 96,
-                      distance: '3.5km',
-                      price: '220k/h',
-                      onBook: () {
-                        // TODO: Handle booking
-                      },
-                    ),
-                    const SizedBox(height: 24), // Bottom padding
-                  ],
-                ),
+                child: homeViewModel.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : nearbyProviders.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'Không tìm thấy thợ nào gần đây',
+                              style: TextStyle(color: AppColors.textSecondary),
+                            ),
+                          )
+                        : Column(
+                            children: nearbyProviders.map((provider) {
+                              // Lấy thông tin Category của dịch vụ đầu tiên
+                              String? categoryName;
+                              String? categoryIcon;
+
+                              if (provider.serviceIds.isNotEmpty) {
+                                final firstServiceId =
+                                    provider.serviceIds.first;
+                                // Find service
+                                try {
+                                  final service = servicesViewModel.allServices
+                                      .firstWhere(
+                                          (s) => s.id == firstServiceId);
+
+                                  // Find category
+                                  final category = servicesViewModel.categories
+                                      .firstWhere(
+                                          (c) => c.id == service.categoryId);
+
+                                  categoryName = category.name;
+                                  categoryIcon = category.iconName;
+                                } catch (_) {
+                                  // Ignore not found
+                                }
+                              }
+
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: WorkerCard(
+                                  name: provider.name,
+                                  imageUrl: provider.avatarUrl,
+                                  rating: provider.rating,
+                                  reviews: provider.reviewCount,
+                                  distance: homeViewModel
+                                      .getDistanceString(provider.id),
+                                  price:
+                                      '${(provider.price / 1000).toStringAsFixed(0)}k/h',
+                                  categoryName: categoryName,
+                                  categoryIcon: categoryIcon,
+                                  onBook: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                            'Tính năng đặt lịch trực tiếp với ${provider.name} đang phát triển'),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              );
+                            }).toList(),
+                          ),
               ),
+              const SizedBox(height: 24), // Bottom padding
             ],
           ),
         ),

@@ -9,6 +9,9 @@ class PartnerRequestModel {
   final String status;
   final DateTime? createdAt;
   final String? rejectReason;
+  final String? portraitUrl;
+  final String? bio;
+  final double? experienceYears;
 
   PartnerRequestModel({
     required this.userId,
@@ -21,6 +24,9 @@ class PartnerRequestModel {
     this.status = 'pending',
     this.createdAt,
     this.rejectReason,
+    this.portraitUrl,
+    this.bio,
+    this.experienceYears,
   });
 
   Map<String, dynamic> toMap() {
@@ -35,6 +41,9 @@ class PartnerRequestModel {
       'status': status,
       'createdAt': createdAt,
       'rejectReason': rejectReason,
+      'portraitUrl': portraitUrl,
+      'bio': bio,
+      'experienceYears': experienceYears,
     };
   }
 
@@ -54,6 +63,9 @@ class PartnerRequestModel {
           ? (map['createdAt'] as dynamic).toDate()
           : null,
       rejectReason: map['rejectReason'],
+      portraitUrl: map['portraitUrl'],
+      bio: map['bio'],
+      experienceYears: (map['experienceYears'] as num?)?.toDouble(),
     );
   }
 }

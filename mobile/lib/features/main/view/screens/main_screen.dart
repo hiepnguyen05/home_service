@@ -1,74 +1,135 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_routes.dart';
+import '../../../../routes/app_router.dart';
 import '../../../home/view/screens/home_screen.dart';
 import '../../../profile/view/screens/profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final int initialIndex;
+
+  const MainScreen({
+    super.key,
+    this.initialIndex = 0,
+  });
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const PlaceholderScreen(title: 'Lịch sử', icon: Icons.history),
-    const PlaceholderScreen(title: 'Tin nhắn', icon: Icons.message),
-    const ProfileScreen(),
-  ];
+  // Keys for nested navigators to handle back presses
+  final GlobalKey<NavigatorState> _homeNavigatorKey =
+      GlobalKey<NavigatorState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _screens[_currentIndex],
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          border: Border(
-            top: BorderSide(
-              color: AppColors.borderLight,
-              width: 0.5,
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+
+        // Check if the current tab is Home and it can pop
+        final NavigatorState? currentState = _homeNavigatorKey.currentState;
+        if (_currentIndex == 0 &&
+            currentState != null &&
+            currentState.canPop()) {
+          currentState.pop();
+          return;
+        }
+
+        // If at root of Home or other tabs, allow exiting app (or handle standard back)
+        // Here we just close the app if can't pop anymore
+        if (context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        body: IndexedStack(
+          index: _currentIndex,
+          children: [
+            // Tab 0: Home with Nested Navigation
+            Navigator(
+              key: _homeNavigatorKey,
+              onGenerateRoute: (settings) {
+                if (settings.name == AppRoutes.bookingTime) {
+                  return AppRouter.generateRoute(settings);
+                }
+                return MaterialPageRoute(
+                  builder: (_) => const HomeScreen(),
+                );
+              },
+            ),
+            // Tab 1: History
+            const PlaceholderScreen(title: 'Lịch sử', icon: Icons.history),
+            // Tab 2: Messages
+            const PlaceholderScreen(title: 'Tin nhắn', icon: Icons.message),
+            // Tab 3: Profile
+            const ProfileScreen(),
+          ],
+        ),
+        bottomNavigationBar: Container(
+          decoration: const BoxDecoration(
+            border: Border(
+              top: BorderSide(
+                color: AppColors.borderLight,
+                width: 0.5,
+              ),
             ),
           ),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: AppColors.white,
-          selectedItemColor: AppColors.primary,
-          unselectedItemColor: AppColors.textSecondary,
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Trang chủ',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.history_outlined),
-              activeIcon: Icon(Icons.history),
-              label: 'Lịch sử',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.message_outlined),
-              activeIcon: Icon(Icons.message),
-              label: 'Tin nhắn',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Tài khoản',
-            ),
-          ],
+          child: BottomNavigationBar(
+            currentIndex: _currentIndex,
+            onTap: (index) {
+              if (index == _currentIndex) {
+                // If tapping the same tab, pop to root of that tab
+                if (index == 0) {
+                  _homeNavigatorKey.currentState
+                      ?.popUntil((route) => route.isFirst);
+                }
+              } else {
+                setState(() {
+                  _currentIndex = index;
+                });
+              }
+            },
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: AppColors.white,
+            selectedItemColor: AppColors.primary,
+            unselectedItemColor: AppColors.textSecondary,
+            selectedFontSize: 12,
+            unselectedFontSize: 12,
+            elevation: 0,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home_outlined),
+                activeIcon: Icon(Icons.home),
+                label: 'Trang chủ',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.history_outlined),
+                activeIcon: Icon(Icons.history),
+                label: 'Lịch sử',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.message_outlined),
+                activeIcon: Icon(Icons.message),
+                label: 'Tin nhắn',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person_outline),
+                activeIcon: Icon(Icons.person),
+                label: 'Tài khoản',
+              ),
+            ],
+          ),
         ),
       ),
     );

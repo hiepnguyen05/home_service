@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import 'package:app_links/app_links.dart';
 import 'dart:async';
-import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/distance_service.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../../provider/data/models/provider_model.dart';
@@ -12,6 +10,8 @@ import '../../viewmodel/booking_viewmodel.dart';
 import '../widgets/confirmation/booking_summary_card.dart';
 import '../widgets/confirmation/price_details_section.dart';
 import '../widgets/confirmation/extra_cost_warning.dart';
+import '../widgets/confirmation/confirmation_bottom_bar.dart';
+import '../widgets/confirmation/section_title.dart';
 import 'booking_success_screen.dart';
 import '../widgets/common/booking_stepper.dart';
 
@@ -234,8 +234,11 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         DialogUtils.hideLoading(context);
       }
 
+      // Kiểm tra xem màn hình còn mounted không trước khi tiếp tục
+      if (!mounted) return;
+
       // Bắt đầu quy trình MoMo
-      if (mounted) {
+      try {
         final paymentResult = await _paymentViewModel.processMoMoPayment(
           bookingId: booking.id,
           amount: totalPrice,
@@ -256,12 +259,9 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                     _navigateToSuccess(context, booking);
                   } else {
                     // Thanh toán bị hủy hoặc thất bại
-                    // Ở lại màn hình xác nhận để người dùng thử lại
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text(
-                            "Đã hủy thanh toán. Bạn có thể chọn phương thức khác."),
-                      ),
+                          content: Text('Thanh toán bị hủy hoặc thất bại')),
                     );
                   }
                 },
@@ -275,6 +275,13 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                   "Lỗi khởi tạo thanh toán MoMo"),
               backgroundColor: Colors.red,
             ),
+          );
+        }
+      } catch (e) {
+        debugPrint("Error processing MoMo payment: $e");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi xử lý thanh toán: $e')),
           );
         }
       }
@@ -315,14 +322,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
               const SizedBox(height: 24),
 
               // 1. Tóm tắt đơn hàng
-              const Text(
-                "Tóm tắt đơn hàng",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
+              const SectionTitle(title: "Tóm tắt đơn hàng"),
               const SizedBox(height: 12),
               BookingSummaryCard(
                 serviceName: widget.serviceName,
@@ -334,14 +334,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
               const SizedBox(height: 24),
 
               // 2. Phương thức thanh toán
-              const Text(
-                "Phương thức thanh toán",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
+              const SectionTitle(title: "Phương thức thanh toán"),
               const SizedBox(height: 12),
               Consumer<BookingViewModel>(
                 builder: (context, vm, child) {
@@ -355,14 +348,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
               const SizedBox(height: 24),
 
               // 3. Chi tiết thanh toán
-              const Text(
-                "Chi tiết thanh toán",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
+              const SectionTitle(title: "Chi tiết thanh toán"),
               const SizedBox(height: 12),
               Consumer<BookingViewModel>(
                 builder: (context, vm, child) {
@@ -387,81 +373,11 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
           builder: (context, bookingVM, paymentVM, child) {
             final totalPrice =
                 bookingVM.calculateTotalPrice(widget.provider.price);
-            final currencyFormatter =
-                NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
 
-            return Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  )
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Tổng cộng",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      Text(
-                        currencyFormatter.format(totalPrice),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed:
-                          bookingVM.isCreatingBooking || paymentVM.isProcessing
-                              ? null
-                              : _handleBookingProcess,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
-                      ),
-                      child:
-                          bookingVM.isCreatingBooking || paymentVM.isProcessing
-                              ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Text(
-                                  "Xác nhận đặt lịch",
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                    ),
-                  ),
-                ],
-              ),
+            return ConfirmationBottomBar(
+              totalPrice: totalPrice,
+              isLoading: bookingVM.isCreatingBooking || paymentVM.isProcessing,
+              onConfirm: _handleBookingProcess,
             );
           },
         ),

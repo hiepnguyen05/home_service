@@ -218,8 +218,12 @@ class _PartnerPendingScreenState extends State<PartnerPendingScreen> {
                         Provider.of<PartnerViewModel>(context, listen: false)
                             .reset();
                         // Re-apply logic (pop to registration or pricing)
-                        Navigator.pushNamedAndRemoveUntil(context,
-                            AppRoutes.partnerRegistration, (route) => false);
+                        Navigator.pushNamedAndRemoveUntil(
+                          context,
+                          AppRoutes.partnerRegistration,
+                          (route) => false,
+                          arguments: {'forceRetry': true},
+                        );
                       } else {
                         // Back to Home
                         Navigator.pushNamedAndRemoveUntil(

@@ -18,11 +18,19 @@ class PaymentViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   String? get currentOrderId => _currentOrderId;
 
+  bool _isDisposed = false;
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
+
   /// Chọn phương thức thanh toán
   void selectPaymentMethod(PaymentMethod method) {
     if (_selectedMethod != method) {
       _selectedMethod = method;
-      notifyListeners();
+      if (!_isDisposed) notifyListeners();
     }
   }
 
@@ -76,14 +84,14 @@ class PaymentViewModel extends ChangeNotifier {
     _isProcessing = false;
     _errorMessage = null;
     _currentOrderId = null;
-    notifyListeners();
+    if (!_isDisposed) notifyListeners();
   }
 
   /// Clear error
   void clearError() {
     if (_errorMessage != null) {
       _errorMessage = null;
-      notifyListeners();
+      if (!_isDisposed) notifyListeners();
     }
   }
 
@@ -91,17 +99,12 @@ class PaymentViewModel extends ChangeNotifier {
   void _setProcessing(bool processing) {
     if (_isProcessing != processing) {
       _isProcessing = processing;
-      notifyListeners();
+      if (!_isDisposed) notifyListeners();
     }
   }
 
   void _setError(String error) {
     _errorMessage = error;
-    notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
+    if (!_isDisposed) notifyListeners();
   }
 }

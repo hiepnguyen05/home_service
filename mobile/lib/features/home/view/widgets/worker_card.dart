@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 
+import '../../../../core/utils/icon_helper.dart';
+
 class WorkerCard extends StatelessWidget {
   final String name;
   final String imageUrl;
@@ -9,6 +11,8 @@ class WorkerCard extends StatelessWidget {
   final String distance;
   final String price;
   final VoidCallback onBook;
+  final String? categoryName;
+  final String? categoryIcon;
 
   const WorkerCard({
     super.key,
@@ -19,6 +23,8 @@ class WorkerCard extends StatelessWidget {
     required this.distance,
     required this.price,
     required this.onBook,
+    this.categoryName,
+    this.categoryIcon,
   });
 
   @override
@@ -86,6 +92,34 @@ class WorkerCard extends StatelessWidget {
                         fontSize: 14,
                       ),
                     ),
+                    if (categoryName != null && categoryName!.isNotEmpty) ...[
+                      const SizedBox(width: 12),
+                      Container(
+                        width: 1,
+                        height: 12,
+                        color: Colors.grey.withOpacity(0.5),
+                      ),
+                      const SizedBox(width: 8),
+                      if (categoryIcon != null) ...[
+                        Icon(
+                          IconHelper.getIcon(categoryIcon!),
+                          size: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 4),
+                      ],
+                      Expanded(
+                        child: Text(
+                          categoryName!,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 4),

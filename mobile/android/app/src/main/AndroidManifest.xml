@@ -60,5 +60,10 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Cho phép kiểm tra app MoMo đã cài chưa -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="momo" />
+        </intent>
     </queries>
 </manifest>

@@ -5,6 +5,7 @@ import '../../../../core/constants/app_routes.dart';
 import '../../viewmodel/partner_viewmodel.dart';
 import '../../../services/data/models/service_model.dart';
 import '../widgets/service_item_row.dart';
+import '../widgets/partner_progress_bar.dart';
 
 class ServicePricingScreen extends StatefulWidget {
   const ServicePricingScreen({super.key});
@@ -15,6 +16,20 @@ class ServicePricingScreen extends StatefulWidget {
 
 class _ServicePricingScreenState extends State<ServicePricingScreen> {
   String _searchQuery = '';
+
+  /// Kiểm tra xem tất cả dịch vụ đã chọn có giá hợp lệ không
+  bool _canProceed(PartnerViewModel viewModel) {
+    if (viewModel.selectedServiceIds.isEmpty) return false;
+    
+    for (final serviceId in viewModel.selectedServiceIds) {
+      final priceStr = viewModel.servicePrices[serviceId] ?? '';
+      if (priceStr.isEmpty) return false;
+      
+      final price = double.tryParse(priceStr.replaceAll('.', '').replaceAll(',', ''));
+      if (price == null || price <= 0) return false;
+    }
+    return true;
+  }
 
   @override
   void initState() {
@@ -150,53 +165,10 @@ class _ServicePricingScreenState extends State<ServicePricingScreen> {
           ),
           body: Column(
             children: [
-              // Step 3 Progress Bar (Segmented)
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Container(
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Container(
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Container(
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              // Step 3 Progress Bar
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                child: PartnerProgressBar(currentStep: 3),
               ),
 
               // Header Description
@@ -310,42 +282,30 @@ class _ServicePricingScreenState extends State<ServicePricingScreen> {
               height: 54,
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: viewModel.selectedServiceIds.isNotEmpty
-                    ? () async {
-                        if (!viewModel.isSubmitting) {
-                          final success = await viewModel.submitApplication();
-                          if (success && context.mounted) {
-                            Navigator.pushNamed(
-                                context, AppRoutes.partnerPending);
-                          }
-                        }
+                onPressed: _canProceed(viewModel)
+                    ? () {
+                        Navigator.pushNamed(context, AppRoutes.bioExperience);
                       }
                     : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: viewModel.selectedServiceIds.isNotEmpty
+                  backgroundColor: _canProceed(viewModel)
                       ? AppColors.primary
                       : Colors.grey[300],
-                  foregroundColor: viewModel.selectedServiceIds.isNotEmpty
+                  foregroundColor: _canProceed(viewModel)
                       ? Colors.white
                       : Colors.grey[500],
-                  elevation: viewModel.selectedServiceIds.isNotEmpty ? 4 : 0,
+                  elevation: _canProceed(viewModel) ? 4 : 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: viewModel.isSubmitting
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(color: Colors.white),
-                      )
-                    : const Text(
-                        'Đăng ký',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                child: const Text(
+                  'Tiếp tục',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ),

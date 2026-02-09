@@ -15,7 +15,7 @@ class PromotionBanner extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           image: const DecorationImage(
             image: NetworkImage(
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuAOjJmWBZzor05aCz2MaE1pCgOk0v7S2dCzcNLyAVvWzTS8rkJcDF0Ct2gzZUR2-4CYMA2bHVvUnU1KEOixQ9iSgcH2WG8U0sxBrjFMkZMyRzzem6YbnhBfuTApNl42pnJOsjj6XZUU3O8Pb4f8ppIn-Xjk64V8Z1KyyXyd5MLxl9m5_V9Y6yG2tK-j5D_T0OsJV0rrmEKfPgz3WediWV3SWaGOEqFgPjNqi7p8vV0tWQQ1UZ1S-WNrFSQHJu-5gBZen-zQNfhP_Jw',
+              'https://lh3.googleusercontent.com/gg-dl/AOI_d_9jjpzbNHcbLzDn4urCTiww2RQ6g9A_C_vd6SfYc_eLqJSAKlb7Wg-trqoAVuGUTYs8goZH5BkZrHZ18xLXOkXi48u4dZAbMi3ueG3YpOCAoQZCiu886emYj1ySsq-7hY_X06ErmH54dfjMy5yV0_e8ajKaJ2Zd0948YURIqSDrAO0cog=s1024-rj',
             ),
             fit: BoxFit.cover,
           ),

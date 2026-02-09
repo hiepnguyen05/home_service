@@ -17,6 +17,7 @@ class AppRoutes {
   static const String certificateUpload = '/certificate-upload';
   static const String servicePricing = '/service-pricing';
   static const String partnerPending = '/partner-pending';
+  static const String bioExperience = '/bio-experience';
   static const String bookingTime = '/booking-time';
   static const String bookingAddress = '/booking-address';
 }

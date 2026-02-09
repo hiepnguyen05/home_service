@@ -139,13 +139,14 @@ class _BookingProviderScreenState extends State<BookingProviderScreen> {
         ),
 
         // Nút tiếp theo
-        bottomNavigationBar:
-            _selectedProviderId != null ? _buildBottomBar() : null,
+        bottomNavigationBar: _buildBottomBar(),
       ),
     );
   }
 
   Widget _buildBottomBar() {
+    if (_selectedProviderId == null) return const SizedBox.shrink();
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -175,9 +176,9 @@ class _BookingProviderScreenState extends State<BookingProviderScreen> {
                   serviceName: _viewModel.serviceName,
                   serviceId: widget.serviceId ?? '',
                   bookingTime: widget.bookingTime,
+                  address: widget.address,
                   userLat: widget.userLat,
                   userLng: widget.userLng,
-                  address: widget.address,
                 ),
               ),
             );

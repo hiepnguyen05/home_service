@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:app_links/app_links.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../data/services/payment_api_service.dart';
 import '../widgets/momo/momo_payment_info_card.dart';
@@ -30,15 +31,62 @@ class _MoMoPaymentScreenState extends State<MoMoPaymentScreen> {
   Timer? _countdownTimer;
   int _countdownSeconds = 300; // 5 phút
 
+  // Deep Link
+  late AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
+
   @override
   void initState() {
     super.initState();
     _startCountdown();
     _startPolling();
+    _initDeepLinkListener();
+  }
+
+  void _initDeepLinkListener() {
+    debugPrint('[MOMO_DEEPLINK] Initializing AppLinks listener...');
+    _appLinks = AppLinks();
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      debugPrint('[MOMO_DEEPLINK] 🔔 Received URI: $uri');
+      if (uri.scheme == 'homeservice' && uri.host == 'payment-callback') {
+        _handleDeepLinkCallback(uri);
+      }
+    });
+  }
+
+  void _handleDeepLinkCallback(Uri uri) {
+    debugPrint('[MOMO_DEEPLINK] Handling callback: $uri');
+    final resultCode = uri.queryParameters['resultCode'];
+    final orderId =
+        uri.queryParameters['orderId'] ?? widget.paymentResult.orderId;
+    debugPrint('[MOMO_DEEPLINK] resultCode: $resultCode, orderId: $orderId');
+
+    if (resultCode == '0' && orderId != null) {
+      debugPrint('[MOMO_DEEPLINK] ✅ Success! Calling confirm API...');
+      _confirmPaymentAndComplete(orderId, resultCode!);
+    } else {
+      debugPrint('[MOMO_DEEPLINK] ❌ Failed or cancelled');
+      // Không làm gì, để polling tiếp tục hoặc user bấm hủy
+    }
+  }
+
+  Future<void> _confirmPaymentAndComplete(
+      String orderId, String resultCode) async {
+    // Gọi API confirm để cập nhật DB
+    final confirmed = await _apiService.confirmPayment(orderId, resultCode);
+    debugPrint('[MOMO_DEEPLINK] Confirm API result: $confirmed');
+
+    if (confirmed && mounted) {
+      _pollingTimer?.cancel();
+      _countdownTimer?.cancel();
+      Navigator.pop(context);
+      widget.onPaymentComplete(true);
+    }
   }
 
   @override
   void dispose() {
+    _linkSubscription?.cancel();
     _pollingTimer?.cancel();
     _countdownTimer?.cancel();
     super.dispose();

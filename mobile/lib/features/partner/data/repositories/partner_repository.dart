@@ -31,7 +31,10 @@ class PartnerRepository {
     required String phoneNumber,
     required File frontIdImage,
     required File backIdImage,
+    required File portraitImage,
     required List<File> certificateImages,
+    required String bio,
+    required double experienceYears,
     required List<Map<String, dynamic>> selectedServices,
   }) async {
     try {
@@ -40,6 +43,8 @@ class PartnerRepository {
           file: frontIdImage, folder: 'kyc/front');
       final backUrl = await CloudinaryService.uploadFile(
           file: backIdImage, folder: 'kyc/back');
+      final portraitUrl = await CloudinaryService.uploadFile(
+          file: portraitImage, folder: 'partner/portraits');
 
       List<String> certUrls = [];
       for (var certFile in certificateImages) {
@@ -55,6 +60,9 @@ class PartnerRepository {
         phoneNumber: phoneNumber,
         idFrontUrl: frontUrl!,
         idBackUrl: backUrl!,
+        portraitUrl: portraitUrl,
+        bio: bio,
+        experienceYears: experienceYears,
         certificates: certUrls,
         services: selectedServices
             .map((s) => PartnerServiceRequest.fromMap(s))
@@ -65,9 +73,35 @@ class PartnerRepository {
 
       // 3. Save to Firestore
       var data = requestModel.toMap();
-      data['createdAt'] = FieldValue.serverTimestamp();
+      data['createdAt'] = Timestamp.now();
 
-      await _firestore.collection('partner_requests').add(data);
+      // Check if application already exists for this user
+      final existingDocs = await _firestore
+          .collection('partner_requests')
+          .where('userId', isEqualTo: userId)
+          .limit(1)
+          .get();
+
+      if (existingDocs.docs.isNotEmpty) {
+        // Update existing document
+        final existingDocId = existingDocs.docs.first.id;
+        data['updatedAt'] = FieldValue.serverTimestamp();
+        await _firestore
+            .collection('partner_requests')
+            .doc(existingDocId)
+            .update(data);
+      } else {
+        // Create new document
+        await _firestore.collection('partner_requests').add(data);
+      }
+
+      // 4. Update User Avatar
+      if (portraitUrl != null) {
+        await _firestore.collection('users').doc(userId).update({
+          'avatar_url': portraitUrl,
+          'updated_at': FieldValue.serverTimestamp(),
+        });
+      }
     } catch (e) {
       throw Exception('Lỗi khi gửi hồ sơ: $e');
     }

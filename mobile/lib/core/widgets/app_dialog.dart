@@ -55,7 +55,7 @@ class AppDialog extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSizes.spacingLarge),
-            
+
             // Tiêu đề
             Text(
               title,
@@ -67,7 +67,7 @@ class AppDialog extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSizes.spacingMedium),
-            
+
             // Nội dung
             Text(
               message,
@@ -79,7 +79,7 @@ class AppDialog extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSizes.spacingLarge),
-            
+
             // Các nút
             Row(
               children: [
@@ -89,18 +89,20 @@ class AppDialog extends StatelessWidget {
                     child: AppButton(
                       text: secondaryButtonText!,
                       type: AppButtonType.outline,
-                      onPressed: onSecondaryPressed ?? () => Navigator.of(context).pop(),
+                      onPressed: onSecondaryPressed ??
+                          () => Navigator.of(context).pop(),
                     ),
                   ),
                   const SizedBox(width: AppSizes.spacingMedium),
                 ],
-                
+
                 // Nút chính
                 Expanded(
                   child: AppButton(
                     text: primaryButtonText ?? 'OK',
                     type: AppButtonType.primary,
-                    onPressed: onPrimaryPressed ?? () => Navigator.of(context).pop(),
+                    onPressed:
+                        onPrimaryPressed ?? () => Navigator.of(context).pop(),
                   ),
                 ),
               ],
@@ -271,6 +273,7 @@ class DialogUtils {
     showDialog(
       context: context,
       barrierDismissible: false,
+      useRootNavigator: true, // Đảm bảo hiển thị trên Root Navigator
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
@@ -301,6 +304,7 @@ class DialogUtils {
 
   /// Đóng dialog loading
   static void hideLoading(BuildContext context) {
-    Navigator.of(context).pop();
+    // Đảm bảo pop từ Root Navigator (nơi showDialog mặc định hiển thị)
+    Navigator.of(context, rootNavigator: true).pop();
   }
 }

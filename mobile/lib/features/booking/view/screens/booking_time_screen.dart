@@ -146,7 +146,7 @@ class _BookingTimeScreenState extends State<BookingTimeScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomBar(),
+      bottomNavigationBar: _selectedTime != null ? _buildBottomBar() : null,
     );
   }
 
@@ -167,42 +167,39 @@ class _BookingTimeScreenState extends State<BookingTimeScreen> {
         width: double.infinity,
         height: 52,
         child: ElevatedButton(
-          onPressed: _selectedTime != null
-              ? () {
-                  DateTime bookingTime;
+          onPressed: () {
+            DateTime bookingTime;
 
-                  // Trường hợp đặc biệt: "Ngay bây giờ" - sử dụng thời gian hiện tại
-                  if (_selectedTime == "Ngay bây giờ") {
-                    bookingTime = DateTime.now();
-                  } else {
-                    // Phân tích chuỗi thời gian - định dạng "HH:MM"
-                    final timeParts = _selectedTime!.split(':');
-                    final hour = int.parse(timeParts[0]);
-                    final minute = int.parse(timeParts[1]);
+            // Trường hợp đặc biệt: "Ngay bây giờ" - sử dụng thời gian hiện tại
+            if (_selectedTime == "Ngay bây giờ") {
+              bookingTime = DateTime.now();
+            } else {
+              // Phân tích chuỗi thời gian - định dạng "HH:MM"
+              final timeParts = _selectedTime!.split(':');
+              final hour = int.parse(timeParts[0]);
+              final minute = int.parse(timeParts[1]);
 
-                    bookingTime = DateTime(
-                      _selectedDate.year,
-                      _selectedDate.month,
-                      _selectedDate.day,
-                      hour,
-                      minute,
-                    );
-                  }
+              bookingTime = DateTime(
+                _selectedDate.year,
+                _selectedDate.month,
+                _selectedDate.day,
+                hour,
+                minute,
+              );
+            }
 
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => BookingAddressScreen(
-                        serviceId: widget.serviceId,
-                        bookingTime: bookingTime,
-                      ),
-                    ),
-                  );
-                }
-              : null, // Disable nút khi chưa chọn giờ
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => BookingAddressScreen(
+                  serviceId: widget.serviceId,
+                  bookingTime: bookingTime,
+                ),
+              ),
+            );
+          },
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
-            disabledBackgroundColor: Colors.grey[300],
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             elevation: 0,

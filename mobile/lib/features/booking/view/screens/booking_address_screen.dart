@@ -295,12 +295,14 @@ class _BookingAddressScreenState extends State<BookingAddressScreen> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-                color: Colors.black12,
-                blurRadius: 10,
-                offset: const Offset(0, -5))
+              color: Colors.black12,
+              blurRadius: 10,
+              offset: const Offset(0, -5),
+            )
           ],
         ),
         child: SizedBox(
+          width: double.infinity,
           height: 52,
           child: ElevatedButton(
             onPressed: canContinue
@@ -336,14 +338,18 @@ class _BookingAddressScreenState extends State<BookingAddressScreen> {
                 : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
+              disabledBackgroundColor: Colors.grey[300],
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
             ),
-            child: const Text("Tiếp theo",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold)),
+            child: const Text(
+              "Tiếp theo",
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold),
+            ),
           ),
         ),
       ),

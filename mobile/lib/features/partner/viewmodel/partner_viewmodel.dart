@@ -14,6 +14,11 @@ class PartnerViewModel extends ChangeNotifier {
   File? _frontIdImage;
   File? _backIdImage;
 
+  // State for Portrait & Bio Step
+  File? _portraitImage;
+  String _bio = '';
+  double _experienceYears = 0.0;
+
   // State for Certificate Step
   final List<File> _certificateImages = [];
 
@@ -30,6 +35,9 @@ class PartnerViewModel extends ChangeNotifier {
   // Getters
   File? get frontIdImage => _frontIdImage;
   File? get backIdImage => _backIdImage;
+  File? get portraitImage => _portraitImage;
+  String get bio => _bio;
+  double get experienceYears => _experienceYears;
   List<File> get certificateImages => List.unmodifiable(_certificateImages);
   List<ServiceModel> get activeServices => _activeServices;
   Set<String> get selectedServiceIds => _selectedServiceIds;
@@ -46,6 +54,22 @@ class PartnerViewModel extends ChangeNotifier {
 
   void setBackIdImage(File image) {
     _backIdImage = image;
+    notifyListeners();
+  }
+
+  // --- Portrait & Bio Actions ---
+  void setPortraitImage(File image) {
+    _portraitImage = image;
+    notifyListeners();
+  }
+
+  void setBio(String bio) {
+    _bio = bio;
+    notifyListeners();
+  }
+
+  void setExperienceYears(double years) {
+    _experienceYears = years;
     notifyListeners();
   }
 
@@ -108,6 +132,9 @@ class PartnerViewModel extends ChangeNotifier {
       if (user == null) throw Exception('Người dùng chưa đăng nhập');
       if (_frontIdImage == null || _backIdImage == null)
         throw Exception('Thiếu ảnh CMND/CCCD');
+      if (_portraitImage == null) throw Exception('Thiếu ảnh chân dung');
+      if (_portraitImage == null) throw Exception('Thiếu ảnh chân dung');
+      if (_bio.isEmpty) throw Exception('Vui lòng nhập giới thiệu bản thân');
 
       // Prepare service data
       final List<Map<String, dynamic>> selectedServicesData =
@@ -130,7 +157,10 @@ class PartnerViewModel extends ChangeNotifier {
         phoneNumber: user.phoneNumber ?? '',
         frontIdImage: _frontIdImage!,
         backIdImage: _backIdImage!,
+        portraitImage: _portraitImage!,
         certificateImages: _certificateImages,
+        bio: _bio,
+        experienceYears: _experienceYears,
         selectedServices: selectedServicesData,
       );
 
@@ -149,6 +179,9 @@ class PartnerViewModel extends ChangeNotifier {
   void reset() {
     _frontIdImage = null;
     _backIdImage = null;
+    _portraitImage = null;
+    _bio = '';
+    _experienceYears = 0.0;
     _certificateImages.clear();
     _selectedServiceIds.clear();
     _servicePrices.clear();
