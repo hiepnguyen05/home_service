@@ -20,12 +20,13 @@ class _ServicePricingScreenState extends State<ServicePricingScreen> {
   /// Kiểm tra xem tất cả dịch vụ đã chọn có giá hợp lệ không
   bool _canProceed(PartnerViewModel viewModel) {
     if (viewModel.selectedServiceIds.isEmpty) return false;
-    
+
     for (final serviceId in viewModel.selectedServiceIds) {
       final priceStr = viewModel.servicePrices[serviceId] ?? '';
       if (priceStr.isEmpty) return false;
-      
-      final price = double.tryParse(priceStr.replaceAll('.', '').replaceAll(',', ''));
+
+      final price =
+          double.tryParse(priceStr.replaceAll('.', '').replaceAll(',', ''));
       if (price == null || price <= 0) return false;
     }
     return true;
@@ -282,11 +283,7 @@ class _ServicePricingScreenState extends State<ServicePricingScreen> {
               height: 54,
               width: double.infinity,
               child: ElevatedButton(
-<<<<<<< Updated upstream
                 onPressed: _canProceed(viewModel)
-=======
-                onPressed: viewModel.selectedServiceIds.isNotEmpty
->>>>>>> Stashed changes
                     ? () {
                         Navigator.pushNamed(context, AppRoutes.bioExperience);
                       }
@@ -295,9 +292,8 @@ class _ServicePricingScreenState extends State<ServicePricingScreen> {
                   backgroundColor: _canProceed(viewModel)
                       ? AppColors.primary
                       : Colors.grey[300],
-                  foregroundColor: _canProceed(viewModel)
-                      ? Colors.white
-                      : Colors.grey[500],
+                  foregroundColor:
+                      _canProceed(viewModel) ? Colors.white : Colors.grey[500],
                   elevation: _canProceed(viewModel) ? 4 : 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),

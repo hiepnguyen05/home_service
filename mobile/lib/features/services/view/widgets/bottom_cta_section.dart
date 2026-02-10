@@ -29,10 +29,8 @@ class BottomCTASection extends StatelessWidget {
         text: 'Đặt ngay',
         onPressed: onBookingPressed,
         type: AppButtonType.primary,
-        height: 54, // Chiều cao to hơn một chút cho nổi bật
+        height: 54, // Chiều cao lớn hơn một chút để nổi bật
       ),
     );
   }
 }
-
-// Test main để xem trước giao diện

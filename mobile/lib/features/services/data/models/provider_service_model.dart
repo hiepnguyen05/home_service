@@ -3,7 +3,8 @@ class ProviderServiceModel {
   final String providerId;
   final String serviceId;
   final double providerPrice;
-  final String status; // 'PENDING', 'APPROVED', 'REJECTED'
+  final String
+      status; // 'PENDING' (Chờ duyệt), 'APPROVED' (Đã duyệt), 'REJECTED' (Từ chối)
   final bool isActive;
   final String? description;
 

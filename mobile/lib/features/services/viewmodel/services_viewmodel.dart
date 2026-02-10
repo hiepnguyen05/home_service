@@ -20,13 +20,13 @@ class ServicesViewModel extends ChangeNotifier {
     _init();
   }
 
-  // Getters
+  // Getters (Bộ truy cập)
   List<CategoryModel> get categories => _categories;
   List<ServiceModel> get allServices => _allServices;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  // Init listeners
+  // Khởi tạo các listeners
   void _init() {
     _setLoading(true);
 
@@ -34,23 +34,22 @@ class ServicesViewModel extends ChangeNotifier {
       (data) {
         _categories = data;
         _errorMessage = null;
-        _setLoading(false); // Only set not loading after at least one success?
-        // Or wait for both? Let's just notify.
+        _setLoading(false); // Chỉ tắt loading khi có dữ liệu thành công
         notifyListeners();
       },
       onError: (e) {
-        _errorMessage = "Failed to load categories: $e";
+        _errorMessage = "Lỗi khi tải danh mục: $e";
         _setLoading(false);
-        print("Category Error: $e");
+        print("Lỗi danh mục: $e");
       },
     );
 
-    // Fetch all active services initially (e.g. for Popular list or just caching)
+    // Lấy tất cả dịch vụ đang hoạt động ban đầu (ví dụ: cho danh sách Phổ biến hoặc caching)
     _servicesSubscription = _repository.getServices().listen((data) {
       _allServices = data;
       notifyListeners();
     }, onError: (e) {
-      print("Services Error: $e");
+      print("Lỗi dịch vụ: $e");
     });
   }
 
@@ -59,8 +58,8 @@ class ServicesViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Helper method to get services by category from the local list
-  // avoiding new DB calls unless necessary
+  // Phương thức hỗ trợ lấy dịch vụ theo danh mục từ danh sách cục bộ
+  // tránh gọi DB mới trừ khi cần thiết
   List<ServiceModel> getServicesByCategory(String categoryId) {
     return _allServices.where((s) => s.categoryId == categoryId).toList();
   }

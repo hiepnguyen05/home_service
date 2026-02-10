@@ -4,7 +4,7 @@ import '../../../../core/constants/app_colors.dart';
 class FAQSection extends StatelessWidget {
   const FAQSection({super.key});
 
-  // 1. DỮ LIỆU CỐ ĐỊNH
+  // 1. DỮ LIỆU MẪU (CỐ ĐỊNH)
   static const List<Map<String, String>> _faqs = [
     {
       'question': 'Tôi có cần chuẩn bị dụng cụ gì không?',
@@ -28,7 +28,7 @@ class FAQSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 2. HEADER CỦA SECTION
+          // 2. TIÊU ĐỀ PHẦN
           Row(
             children: [
               const Icon(Icons.help_outline,
@@ -47,7 +47,7 @@ class FAQSection extends StatelessWidget {
           const SizedBox(height: 16),
 
           // 3. DANH SÁCH CÂU HỎI
-          // Dùng map để chuyển đổi từ dữ liệu (Map) thành Widget (FAQItem)
+          // Sử dụng map để chuyển đổi từ dữ liệu (Map) sang Widget (FAQItem)
           ..._faqs.map((faq) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: FAQItem(
@@ -61,7 +61,7 @@ class FAQSection extends StatelessWidget {
   }
 }
 
-// 4. WIDGET CON (Code của bạn, đổi tên FaqSection -> FAQItem)
+// 4. WIDGET CON (Mục câu hỏi thường gặp)
 class FAQItem extends StatefulWidget {
   final String question;
   final String answer;
@@ -94,7 +94,7 @@ class _FAQItemState extends State<FAQItem> {
           AnimatedCrossFade(
             firstChild: const SizedBox.shrink(),
             secondChild:
-                _buildContent(), // Tách content ra widget riêng cho gọn
+                _buildContent(), // Tách nội dung ra widget riêng để gọn gàng
             crossFadeState: _isExpanded
                 ? CrossFadeState.showSecond
                 : CrossFadeState.showFirst,
@@ -139,7 +139,7 @@ class _FAQItemState extends State<FAQItem> {
     );
   }
 
-  // Tách phần Content ra để code sạch hơn
+  // Tách phần Nội dung ra để code gọn gàng hơn
   Widget _buildContent() {
     return Column(
       children: [

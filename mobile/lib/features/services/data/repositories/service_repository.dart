@@ -8,10 +8,11 @@ class ServiceRepository {
   ServiceRepository({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
-  // Fetch Categories
+  // Lấy danh sách danh mục
   Stream<List<CategoryModel>> getCategories() {
     return _firestore
         .collection('categories')
+        .where('isActive', isEqualTo: true)
         .orderBy('order')
         .snapshots()
         .map((snapshot) {
@@ -21,7 +22,7 @@ class ServiceRepository {
     });
   }
 
-  // Fetch Services (optionally filtered by category)
+  // Lấy danh sách dịch vụ (tùy chọn lọc theo danh mục)
   Stream<List<ServiceModel>> getServices({String? categoryId}) {
     Query query =
         _firestore.collection('services').where('isActive', isEqualTo: true);
@@ -30,8 +31,8 @@ class ServiceRepository {
       query = query.where('categoryId', isEqualTo: categoryId);
     }
 
-    // Note: If you have composite indexes issues, you might need to index (categoryId + active + rating/created)
-    // For now, let's keep it simple.
+    // Lưu ý: Nếu gặp vấn đề về composite indexes, có thể cần index (categoryId + active + rating/created)
+    // Hiện tại giữ đơn giản.
     // query = query.orderBy('createdAt', descending: true);
 
     return query.snapshots().map((snapshot) {

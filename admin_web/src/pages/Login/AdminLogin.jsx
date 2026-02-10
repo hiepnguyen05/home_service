@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import { useFirebase } from '../../context/FirebaseContext';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import '../../styles/AdminLogin.css';
 
@@ -14,7 +12,7 @@ const AdminLogin = () => {
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
 
-    const { auth, firestore } = useFirebase();
+    const { login } = useAuth();
     const navigate = useNavigate();
 
     const handleInputChange = (e) => {
@@ -25,80 +23,25 @@ const AdminLogin = () => {
         }));
     };
 
-    const checkAdminRole = async (userEmail) => {
-        try {
-            // Trước tiên kiểm tra danh sách email admin cố định
-            const adminEmails = [
-                'admin@homeservice.com',
-                'admin@gmail.com',
-                'nguyenngochiep@gmail.com',
-                'quanly@homeservice.com'
-            ];
-
-            // Nếu email có trong danh sách admin, cho phép truy cập
-            if (adminEmails.includes(userEmail)) {
-                console.log('Admin email found in whitelist:', userEmail);
-                return true;
-            }
-
-            // Nếu không có trong danh sách, kiểm tra role từ Firestore
-            console.log('Checking role in Firestore for user:', auth.currentUser.uid);
-            const userDoc = await getDoc(doc(firestore, 'users', auth.currentUser.uid));
-
-            if (userDoc.exists()) {
-                const userData = userDoc.data();
-                console.log('User data from Firestore:', userData);
-
-                // Kiểm tra role trong document
-                const isAdmin = userData.role === 'admin' || userData.role === 'administrator';
-                console.log('Is admin from Firestore role:', isAdmin);
-                return isAdmin;
-            } else {
-                console.log('User document not found in Firestore');
-            }
-
-            return false;
-        } catch (error) {
-            console.error('Lỗi khi kiểm tra quyền admin:', error);
-
-            // Fallback: nếu có lỗi, kiểm tra email trong danh sách
-            const adminEmails = [
-                'admin@homeservice.com',
-                'admin@gmail.com',
-                'nguyenngochiep@gmail.com',
-                'quanly@homeservice.com'
-            ];
-
-            return adminEmails.includes(userEmail);
-        }
-    };
-
     const handleLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
         try {
-            const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
-            const user = userCredential.user;
-
-            // Kiểm tra quyền admin
-            const isAdmin = await checkAdminRole(user.email);
-
-            if (isAdmin) {
-                console.log('Đăng nhập thành công với tư cách quản trị viên');
-                navigate('/admin-dashboard');
-            } else {
-                setError('Tài khoản này không có quyền truy cập trang quản trị');
-                await auth.signOut(); // Đăng xuất nếu không phải admin
-            }
+            await login(formData.email, formData.password);
+            // AuthContext state change will trigger re-renders, but we can also nav here
+            // Validating role happens in PrivateRoute or here if we want immediate feedback
+            // For better UX, we just navigate to root which redirects to /customers
+            navigate('/');
         } catch (err) {
             console.error('Lỗi đăng nhập:', err);
 
             // Xử lý các loại lỗi khác nhau
             switch (err.code) {
                 case 'auth/user-not-found':
-                    setError('Không tìm thấy tài khoản với email này');
+                case 'auth/invalid-credential':
+                    setError('Tài khoản hoặc mật khẩu không chính xác');
                     break;
                 case 'auth/wrong-password':
                     setError('Mật khẩu không chính xác');

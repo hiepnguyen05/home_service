@@ -29,7 +29,7 @@ class HomeAppBar extends StatelessWidget {
               image: DecorationImage(
                 image: NetworkImage(
                   avatarUrl ??
-                      'https://lh3.googleusercontent.com/aida-public/AB6AXuAdInjgb7T3ZqopEjBOvYnFNmyLuOXsWdNv7mmS8jACPayCDPpi8f_d1ziPMzqhUeedlMSTfhQ42CE2ufXyZlZW93rbdKhZ3ryuVQVWjqRj_4zqzMAmy7RwxRGFAtbuoYbySVifWAhI_LFpvdCjoHLBlBKBgCj7qd-M1cXOZ3iv8fTh3fn4LfTk65aFgHxYSN_KfhZaLqgBuCDFd0BPQVf4CFKu6xrdIKfFBc092ZwCWkHs460zOsKYSQk1SiStSscOGSPIonkQZcw',
+                      'https://ui-avatars.com/api/?name=User&background=random',
                 ),
                 fit: BoxFit.cover,
               ),

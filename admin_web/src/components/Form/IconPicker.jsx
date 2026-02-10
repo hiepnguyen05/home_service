@@ -17,8 +17,8 @@ const IconPicker = ({ selectedIcon, onSelect }) => {
                             onClick={() => onSelect(item.name)}
                             className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all duration-200 aspect-square group relative
                                 ${isSelected
-                                    ? 'bg-blue-100 border-2 border-blue-500 text-blue-700 shadow-sm'
-                                    : 'bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 text-gray-600'
+                                    ? 'bg-green-50 border-2 border-[#4CAE4F] text-[#4CAE4F] shadow-sm'
+                                    : 'bg-white border border-gray-200 hover:border-[#4CAE4F]/50 hover:bg-green-50 text-gray-600'
                                 }`}
                             title={item.label}
                         >

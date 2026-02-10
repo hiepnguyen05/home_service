@@ -100,7 +100,7 @@ class _StepItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
+    // TODO: Triển khai giao diện
     return Column(
       children: [
         Container(

@@ -25,19 +25,19 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Access ViewModel
+    // Truy cập ViewModel
     final viewModel = context.watch<ServicesViewModel>();
     final allServices = viewModel.allServices;
     final isLoading = viewModel.isLoading;
 
-    // Filter logic: Category + Search
+    // Logic lọc: Danh mục + Tìm kiếm
     final filteredServices = allServices.where((service) {
-      // 1. Filter by category if provided
+      // 1. Lọc theo danh mục nếu có
       if (widget.categoryId != null &&
           service.categoryId != widget.categoryId) {
         return false;
       }
-      // 2. Filter by search query
+      // 2. Lọc theo từ khóa tìm kiếm
       if (_searchQuery.isNotEmpty) {
         final queryLower = _searchQuery.toLowerCase();
         return service.name.toLowerCase().contains(queryLower) ||
@@ -47,7 +47,7 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: Colors.grey[50], // background-light
+      backgroundColor: Colors.grey[50], // Nền sáng
       appBar: AppBar(
         title: Text(
           widget.categoryName ?? 'Danh sách dịch vụ',
@@ -64,13 +64,13 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
       ),
       body: Column(
         children: [
-          // Search Bar
+          // Thanh tìm kiếm
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Container(
               height: 48,
               decoration: BoxDecoration(
-                color: Colors.white, // Surface color
+                color: Colors.white, // Màu bề mặt
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.transparent),
               ),
@@ -96,7 +96,7 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
             ),
           ),
 
-          // Service List
+          // Danh sách dịch vụ
           Expanded(
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())

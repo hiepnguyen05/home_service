@@ -20,16 +20,16 @@ const AdminLayout = ({ children }) => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex">
+        <div className="h-screen w-full bg-gray-50 flex overflow-hidden">
             {/* Sidebar */}
-            <div className={`${isSidebarOpen ? 'w-64' : 'w-0'} transition-all duration-300 overflow-hidden flex-shrink-0`}>
+            <div className={`${isSidebarOpen ? 'w-64' : 'w-0'} transition-all duration-300 h-full flex-shrink-0 relative border-r border-gray-200 bg-white`}>
                 <Sidebar />
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
                 {/* Top Header */}
-                <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 sticky top-0 z-20">
+                <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 flex-shrink-0 z-20">
                     <div className="flex items-center gap-4">
                         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-gray-500 hover:text-gray-700">
                             <FaBars size={20} />
@@ -54,7 +54,7 @@ const AdminLayout = ({ children }) => {
                 </header>
 
                 {/* Page Content */}
-                <main className="flex-1 p-6 overflow-y-auto">
+                <main className="flex-1 p-6 overflow-y-auto bg-gray-50 scroll-smooth">
                     {children}
                 </main>
             </div>

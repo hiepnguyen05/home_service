@@ -1,28 +1,69 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
+import PrivateRoute from './components/Auth/PrivateRoute'
 import CustomerManager from './pages/Customers/CustomerManager.jsx'
 import ProviderManager from './pages/Providers/ProviderManager.jsx'
+import CategoriesManager from './pages/Categories/CategoriesManager.jsx'
+import ServiceManager from './pages/Services/ServiceManager.jsx'
+import AdminLogin from './pages/Login/AdminLogin.jsx'
 import AdminLayout from './layouts/AdminLayout'
 import './App.css'
 
-// Uncomment dòng dưới để test Firebase connection
-// import { testFirebaseConnection } from './utils/testFirebase';
-// testFirebaseConnection();
-
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Navigate to="/customers" />} />
-        <Route path="/customers" element={<AdminLayout title="Quản lý Khách hàng"><CustomerManager /></AdminLayout>} />
-        <Route path="/providers" element={<AdminLayout title="Quản lý Thợ"><ProviderManager /></AdminLayout>} />
-        <Route path="/categories" element={<AdminLayout title="Quản lý Danh mục"><div>Trang Quản lý Danh mục (Đang phát triển)</div></AdminLayout>} />
-        <Route path="/services" element={<AdminLayout title="Dịch vụ"><div>Trang Dịch vụ (Đang phát triển)</div></AdminLayout>} />
-        <Route path="/orders" element={<AdminLayout title="Đơn hàng"><div>Trang Đơn hàng (Đang phát triển)</div></AdminLayout>} />
-        <Route path="/reports" element={<AdminLayout title="Báo cáo"><div>Trang Báo cáo (Đang phát triển)</div></AdminLayout>} />
-        <Route path="/settings" element={<AdminLayout title="Cài đặt"><div>Trang Cài đặt (Đang phát triển)</div></AdminLayout>} />
-        <Route path="*" element={<Navigate to="/customers" />} />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/admin-login" element={<AdminLogin />} />
+
+          <Route path="/" element={<Navigate to="/customers" />} />
+
+          <Route path="/customers" element={
+            <PrivateRoute>
+              <AdminLayout title="Quản lý Khách hàng"><CustomerManager /></AdminLayout>
+            </PrivateRoute>
+          } />
+
+          <Route path="/providers" element={
+            <PrivateRoute>
+              <AdminLayout title="Quản lý Thợ"><ProviderManager /></AdminLayout>
+            </PrivateRoute>
+          } />
+
+          <Route path="/categories" element={
+            <PrivateRoute>
+              <AdminLayout title="Quản lý Danh mục"><CategoriesManager /></AdminLayout>
+            </PrivateRoute>
+          } />
+
+          <Route path="/services" element={
+            <PrivateRoute>
+              <AdminLayout title="Dịch vụ"><ServiceManager /></AdminLayout>
+            </PrivateRoute>
+          } />
+
+          <Route path="/orders" element={
+            <PrivateRoute>
+              <AdminLayout title="Đơn hàng"><div>Trang Đơn hàng (Đang phát triển)</div></AdminLayout>
+            </PrivateRoute>
+          } />
+
+          <Route path="/reports" element={
+            <PrivateRoute>
+              <AdminLayout title="Báo cáo"><div>Trang Báo cáo (Đang phát triển)</div></AdminLayout>
+            </PrivateRoute>
+          } />
+
+          <Route path="/settings" element={
+            <PrivateRoute>
+              <AdminLayout title="Cài đặt"><div>Trang Cài đặt (Đang phát triển)</div></AdminLayout>
+            </PrivateRoute>
+          } />
+
+          <Route path="*" element={<Navigate to="/customers" />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   )
 }
 

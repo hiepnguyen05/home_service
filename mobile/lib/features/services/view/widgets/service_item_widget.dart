@@ -26,7 +26,7 @@ class ServiceItemWidget extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Icon
+            // Biểu tượng
             Container(
               width: 48,
               height: 48,
@@ -42,7 +42,7 @@ class ServiceItemWidget extends StatelessWidget {
             ),
             const SizedBox(width: 16),
 
-            // Text Content
+            // Nội dung văn bản
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,7 +70,7 @@ class ServiceItemWidget extends StatelessWidget {
               ),
             ),
 
-            // Arrow Icon
+            // Biểu tượng mũi tên
             const SizedBox(width: 12),
             const Icon(
               Icons.chevron_right,
