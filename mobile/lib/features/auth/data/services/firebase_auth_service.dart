@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
+import '../../../../core/services/notification_service.dart';
 
 /// Service xử lý Firebase Authentication
 class FirebaseAuthService {
@@ -30,8 +31,9 @@ class FirebaseAuthService {
       await firebaseUser.updateDisplayName(fullName);
 
       // Tạo user document trong Firestore
-      final userModel = UserModel(
-        id: firebaseUser.uid.hashCode, // Convert UID to int
+      var userModel = UserModel(
+        id: firebaseUser.uid.hashCode,
+        uid: firebaseUser.uid,
         code: null,
         fullName: fullName,
         phone: phone,
@@ -43,6 +45,10 @@ class FirebaseAuthService {
         updatedAt: DateTime.now(),
       );
 
+      // Lấy FCM Token
+      final fcmToken = await NotificationService.getToken();
+      userModel = userModel.copyWith(fcmToken: fcmToken);
+
       // Lưu thông tin user vào Firestore
       await _firestore.collection('users').doc(firebaseUser.uid).set({
         'full_name': fullName,
@@ -53,6 +59,7 @@ class FirebaseAuthService {
         'status': 'active',
         'created_at': FieldValue.serverTimestamp(),
         'updated_at': FieldValue.serverTimestamp(),
+        'fcm_token': fcmToken,
       });
 
       print('Đăng ký thành công: ${userModel.fullName}');
@@ -97,6 +104,7 @@ class FirebaseAuthService {
       final userData = userDoc.data()!;
       final userModel = UserModel(
         id: firebaseUser.uid.hashCode,
+        uid: firebaseUser.uid,
         code: userData['code'],
         fullName: userData['full_name'] ?? firebaseUser.displayName ?? '',
         phone: userData['phone'] ?? '',
@@ -109,6 +117,15 @@ class FirebaseAuthService {
         updatedAt:
             (userData['updated_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
       );
+
+      // Cập nhật FCM Token khi đăng nhập
+      final fcmToken = await NotificationService.getToken();
+      if (fcmToken != null) {
+        await _firestore.collection('users').doc(firebaseUser.uid).update({
+          'fcm_token': fcmToken,
+          'updated_at': FieldValue.serverTimestamp(),
+        });
+      }
 
       print('Đăng nhập thành công: ${userModel.fullName}');
       return userModel;
@@ -150,6 +167,7 @@ class FirebaseAuthService {
       final userData = userDoc.data()!;
       return UserModel(
         id: firebaseUser.uid.hashCode,
+        uid: firebaseUser.uid,
         code: userData['code'],
         fullName: userData['full_name'] ?? firebaseUser.displayName ?? '',
         phone: userData['phone'] ?? '',
@@ -237,5 +255,11 @@ class FirebaseAuthService {
       default:
         return Exception('Lỗi xác thực: ${e.message}');
     }
+  }
+
+  /// Lấy document của user bất kỳ
+  static Future<DocumentSnapshot<Map<String, dynamic>>> getUserDoc(
+      String uid) async {
+    return await _firestore.collection('users').doc(uid).get();
   }
 }

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 import '../services/firebase_auth_service.dart';
 import '../../../../core/services/storage_service.dart';
@@ -114,5 +115,33 @@ class AuthRepository {
 
     // Logic cập nhật lại cache user info nên được gọi lại
     // bằng cách gọi lại getCurrentUser hoặc update thủ công nếu có model mới
+  }
+
+  /// Lấy thông tin user bất kỳ theo UID
+  Future<UserModel?> getUserById(String uid) async {
+    try {
+      final userDoc = await FirebaseAuthService.getUserDoc(uid);
+      if (userDoc.exists) {
+        final userData = userDoc.data()!;
+        return UserModel(
+          id: uid.hashCode,
+          uid: uid,
+          code: userData['code'],
+          fullName: userData['full_name'] ?? '',
+          phone: userData['phone'] ?? '',
+          email: userData['email'] ?? '',
+          avatarUrl: userData['avatar_url'],
+          role: userData['role'] ?? 'customer',
+          status: userData['status'] ?? 'active',
+          createdAt:
+              (userData['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          updatedAt:
+              (userData['updated_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
+        );
+      }
+    } catch (e) {
+      print('Error fetching user: $e');
+    }
+    return null;
   }
 }

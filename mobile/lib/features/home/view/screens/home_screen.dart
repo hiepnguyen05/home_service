@@ -11,6 +11,8 @@ import '../../../auth/viewmodel/auth_viewmodel.dart';
 import '../../viewmodel/home_viewmodel.dart';
 import '../../../services/viewmodel/services_viewmodel.dart';
 import '../../../services/view/screens/services_list_screen.dart';
+import '../../../../core/utils/formatters.dart';
+import 'package:mobile/features/provider/view/screens/provider_detail_screen.dart';
 
 // ... (previous imports)
 
@@ -38,9 +40,6 @@ class HomeScreen extends StatelessWidget {
               HomeAppBar(
                 userName: currentUser?.fullName ?? 'Khách',
                 avatarUrl: currentUser?.avatarUrl,
-                onNotificationTap: () {
-                  // TODO: Handle notification tap
-                },
               ),
               HomeSearchBar(
                 onTap: () {
@@ -67,7 +66,7 @@ class HomeScreen extends StatelessWidget {
                   );
                 },
               ),
-              const PromotionBanner(),
+              PromotionBanner(),
               const Padding(
                 padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
                 child: Text(
@@ -95,6 +94,7 @@ class HomeScreen extends StatelessWidget {
                               // Lấy thông tin Category của dịch vụ đầu tiên
                               String? categoryName;
                               String? categoryIcon;
+                              String priceUnit = 'giờ'; // Default
 
                               if (provider.serviceIds.isNotEmpty) {
                                 final firstServiceId =
@@ -104,6 +104,8 @@ class HomeScreen extends StatelessWidget {
                                   final service = servicesViewModel.allServices
                                       .firstWhere(
                                           (s) => s.id == firstServiceId);
+
+                                  priceUnit = service.priceUnit;
 
                                   // Find category
                                   final category = servicesViewModel.categories
@@ -127,9 +129,21 @@ class HomeScreen extends StatelessWidget {
                                   distance: homeViewModel
                                       .getDistanceString(provider.id),
                                   price:
-                                      '${(provider.price / 1000).toStringAsFixed(0)}k/h',
+                                      '${AppFormatters.formatCompactCurrency(provider.price.toDouble())}/${priceUnit == 'giờ' ? 'h' : priceUnit}',
                                   categoryName: categoryName,
                                   categoryIcon: categoryIcon,
+                                  onTapCard: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ProviderDetailScreen(
+                                          provider: provider,
+                                          isViewOnly: true,
+                                          canBookDirect: true,
+                                        ),
+                                      ),
+                                    );
+                                  },
                                   onBook: () {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(

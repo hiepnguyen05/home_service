@@ -44,6 +44,7 @@ class PaymentApiService {
     required double amount,
     required String orderInfo,
   }) async {
+    print("🔗 [API] Calling createMoMoPayment... URL: $baseUrl/create");
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/create'),
@@ -55,6 +56,9 @@ class PaymentApiService {
         }),
       );
 
+      print("📥 [API] Response Code: ${response.statusCode}");
+      print("📥 [API] Response Body: ${response.body}");
+
       if (response.statusCode == 200) {
         return MoMoPaymentResult.fromJson(jsonDecode(response.body));
       } else {
@@ -64,6 +68,7 @@ class PaymentApiService {
         );
       }
     } catch (e) {
+      print("❌ [API] Error calling createMoMoPayment: $e");
       return MoMoPaymentResult(
         success: false,
         message: 'Payment API Error: $e',

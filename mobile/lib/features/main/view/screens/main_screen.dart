@@ -4,6 +4,9 @@ import '../../../../core/constants/app_routes.dart';
 import '../../../../routes/app_router.dart';
 import '../../../home/view/screens/home_screen.dart';
 import '../../../profile/view/screens/profile_screen.dart';
+import '../../../booking/view/screens/booking_history_screen.dart';
+import '../../../notification/view/screens/notification_screen.dart';
+import '../../../notification/data/repositories/notification_repository.dart';
 
 class MainScreen extends StatefulWidget {
   final int initialIndex;
@@ -69,9 +72,9 @@ class _MainScreenState extends State<MainScreen> {
               },
             ),
             // Tab 1: History
-            const PlaceholderScreen(title: 'Lịch sử', icon: Icons.history),
-            // Tab 2: Messages
-            const PlaceholderScreen(title: 'Tin nhắn', icon: Icons.message),
+            const BookingHistoryScreen(),
+            // Tab 2: Notifications
+            const NotificationScreen(),
             // Tab 3: Profile
             const ProfileScreen(),
           ],
@@ -107,23 +110,49 @@ class _MainScreenState extends State<MainScreen> {
             selectedFontSize: 12,
             unselectedFontSize: 12,
             elevation: 0,
-            items: const [
-              BottomNavigationBarItem(
+            items: [
+              const BottomNavigationBarItem(
                 icon: Icon(Icons.home_outlined),
                 activeIcon: Icon(Icons.home),
                 label: 'Trang chủ',
               ),
-              BottomNavigationBarItem(
+              const BottomNavigationBarItem(
                 icon: Icon(Icons.history_outlined),
                 activeIcon: Icon(Icons.history),
                 label: 'Lịch sử',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.message_outlined),
-                activeIcon: Icon(Icons.message),
-                label: 'Tin nhắn',
+                icon: StreamBuilder<int>(
+                  stream: NotificationRepository().streamUnreadCount(),
+                  builder: (context, snapshot) {
+                    final count = snapshot.data ?? 0;
+                    return Badge(
+                      isLabelVisible: count > 0,
+                      label: Text(
+                        count > 99 ? '99+' : count.toString(),
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                      child: const Icon(Icons.notifications_outlined),
+                    );
+                  },
+                ),
+                activeIcon: StreamBuilder<int>(
+                  stream: NotificationRepository().streamUnreadCount(),
+                  builder: (context, snapshot) {
+                    final count = snapshot.data ?? 0;
+                    return Badge(
+                      isLabelVisible: count > 0,
+                      label: Text(
+                        count > 99 ? '99+' : count.toString(),
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                      child: const Icon(Icons.notifications),
+                    );
+                  },
+                ),
+                label: 'Thông báo',
               ),
-              BottomNavigationBarItem(
+              const BottomNavigationBarItem(
                 icon: Icon(Icons.person_outline),
                 activeIcon: Icon(Icons.person),
                 label: 'Tài khoản',

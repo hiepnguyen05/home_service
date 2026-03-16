@@ -12,6 +12,7 @@ class PartnerRequestModel {
   final String? portraitUrl;
   final String? bio;
   final double? experienceYears;
+  final String requestType; // 'registration' hoặc 'update'
 
   PartnerRequestModel({
     required this.userId,
@@ -27,6 +28,7 @@ class PartnerRequestModel {
     this.portraitUrl,
     this.bio,
     this.experienceYears,
+    this.requestType = 'registration',
   });
 
   Map<String, dynamic> toMap() {
@@ -44,6 +46,7 @@ class PartnerRequestModel {
       'portraitUrl': portraitUrl,
       'bio': bio,
       'experienceYears': experienceYears,
+      'requestType': requestType,
     };
   }
 
@@ -66,6 +69,7 @@ class PartnerRequestModel {
       portraitUrl: map['portraitUrl'],
       bio: map['bio'],
       experienceYears: (map['experienceYears'] as num?)?.toDouble(),
+      requestType: map['requestType'] ?? 'registration',
     );
   }
 }
@@ -74,11 +78,19 @@ class PartnerServiceRequest {
   final String serviceId;
   final String serviceName;
   final String price;
+  final String? iconName;
+  final String? changeType; // 'added', 'updated', 'deleted', null
+  final String? oldPrice;
+  final bool isActive; // NEW: Trạng thái tạm ngưng/hoạt động
 
   PartnerServiceRequest({
     required this.serviceId,
     required this.serviceName,
     required this.price,
+    this.iconName,
+    this.changeType,
+    this.oldPrice,
+    this.isActive = true,
   });
 
   Map<String, dynamic> toMap() {
@@ -86,6 +98,10 @@ class PartnerServiceRequest {
       'serviceId': serviceId,
       'serviceName': serviceName,
       'price': price,
+      'iconName': iconName,
+      'changeType': changeType,
+      'oldPrice': oldPrice,
+      'isActive': isActive,
     };
   }
 
@@ -94,6 +110,10 @@ class PartnerServiceRequest {
       serviceId: map['serviceId'] ?? '',
       serviceName: map['serviceName'] ?? '',
       price: map['price'] ?? '',
+      iconName: map['iconName'],
+      changeType: map['changeType'],
+      oldPrice: map['oldPrice'],
+      isActive: map['isActive'] ?? true,
     );
   }
 }

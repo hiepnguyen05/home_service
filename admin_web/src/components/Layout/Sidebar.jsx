@@ -6,12 +6,12 @@ const Sidebar = () => {
     // ... nav items ...
     const mainNavItems = [
         { path: '/dashboard', label: 'Bảng điều khiển', icon: 'dashboard' },
+        { path: '/applications', label: 'Duyệt hồ sơ', icon: 'how_to_reg' },
         { path: '/customers', label: 'Khách hàng', icon: 'group' },
         { path: '/providers', label: 'Quản lý Thợ', icon: 'engineering' },
         { path: '/categories', label: 'Danh mục', icon: 'category' },
         { path: '/services', label: 'Dịch vụ', icon: 'construction' },
-        { path: '/orders', label: 'Đơn hàng', icon: 'event_available' },
-        { path: '/reports', label: 'Báo cáo', icon: 'analytics' },
+        { path: '/reports', label: 'Analytics', icon: 'analytics' },
     ];
 
     const NavItem = ({ item }) => (

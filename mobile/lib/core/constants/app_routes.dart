@@ -20,4 +20,5 @@ class AppRoutes {
   static const String bioExperience = '/bio-experience';
   static const String bookingTime = '/booking-time';
   static const String bookingAddress = '/booking-address';
+  static const String providerDetail = '/provider-detail';
 }

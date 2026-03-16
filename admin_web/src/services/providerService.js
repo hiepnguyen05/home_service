@@ -99,14 +99,25 @@ export const deleteProvider = async (providerId) => {
 /**
  * Duyệt thợ (Verify)
  */
-export const approveProvider = async (providerId) => {
+export const approveProvider = async (providerId, requestId) => {
     try {
         const providerRef = doc(firestore, 'users', providerId);
 
         // 1. Lấy thông tin từ partner_requests để copy sang users
-        const requestDetails = await getProviderRequestDetails(providerId);
+        // Nếu có requestId, lấy chính xác đơn đó, ngược lại dùng ID thợ để tìm đơn mới nhất
+        let requestDetails = null;
+        if (requestId) {
+            const reqDoc = await getDoc(doc(firestore, 'partner_requests', requestId));
+            if (reqDoc.exists()) {
+                requestDetails = { id: reqDoc.id, ...reqDoc.data() };
+            }
+        }
+        
+        if (!requestDetails) {
+            requestDetails = await getProviderRequestDetails(providerId);
+        }
 
-        const updateData = {
+        let updateData = {
             isVerified: true,
             verificationStatus: 'verified',
             updatedAt: new Date(),
@@ -114,56 +125,183 @@ export const approveProvider = async (providerId) => {
         };
 
         if (requestDetails) {
-            // Copy images if they exist in request but not in provider (or just overwrite to be safe/latest)
             if (requestDetails.idFrontUrl) updateData.idFrontUrl = requestDetails.idFrontUrl;
             if (requestDetails.idBackUrl) updateData.idBackUrl = requestDetails.idBackUrl;
-
-            // Map certificates
-            if (requestDetails.certificates) {
-                updateData.certificates = requestDetails.certificates;
-            }
-
-            // Map services
+            if (requestDetails.certificates) updateData.certificates = requestDetails.certificates;
             if (requestDetails.services && Array.isArray(requestDetails.services)) {
-                // partner_requests stores services as objects {serviceId, serviceName, price}
-                // users/ProviderModel stores serviceIds as List<String>
                 updateData.serviceIds = requestDetails.services.map(s => s.serviceId || s.id);
             }
-
-            // Map bio/experience if available and mapped
             if (requestDetails.experienceYears) {
-                // Convert experienceYears (number) to string with "năm"
                 updateData.experience = `${requestDetails.experienceYears} năm`;
             } else if (requestDetails.experience) {
                 updateData.experience = requestDetails.experience;
             }
-
+            if (requestDetails.portraitUrl) updateData.avatar_url = requestDetails.portraitUrl;
             if (requestDetails.bio) updateData.bio = requestDetails.bio;
         }
 
-        // Ensure basic fields if we are inadvertently creating a new user document
         updateData.role = 'provider';
-        if (!updateData.createdAt) updateData.createdAt = new Date(); // Only if creating (merge will keep existing if not overwritten, but better to be safe or check existence. Actually setDoc merge will overwrite. We should probably only set createdAt if it's new, but we can't easily know without getDoc. User verification usually implies existing user. Let's just set role and use setDoc. Firestore timestamps are objects, new Date() is JS. Firestore handles conversion.)
+        if (!updateData.createdAt) updateData.createdAt = new Date();
 
-        // Use setDoc with merge: true instead of updateDoc to handle missing user documents
+        // Fetch user data to use as fallback for name, avatar, etc.
+        const userSnapshot = await getDoc(providerRef);
+        const userData = userSnapshot.exists() ? userSnapshot.data() : {};
+
+        // 1. Chuẩn bị dữ liệu services (Hợp nhất diff nếu có)
+        let finalServices = (requestDetails && requestDetails.services) ? requestDetails.services : [];
+        try {
+            const providersRef = doc(firestore, 'providers', providerId);
+            const providerSnapshot = await getDoc(providersRef);
+            
+                const changes = requestDetails.services || [];
+                const isUpdate = requestDetails.requestType === 'update';
+                
+                let currentServices = [];
+                
+                // 1. Thử lấy từ providers.services
+                if (providerSnapshot.exists()) {
+                    currentServices = providerSnapshot.data()?.services || [];
+                }
+                
+                // 2. Thử lấy từ users.services (Fallback)
+                if (currentServices.length === 0) {
+                    if (userSnapshot.exists()) {
+                        currentServices = userData.services || [];
+                    }
+                }
+
+                // 3. Fallback: Nếu vẫn trống nhưng có serviceIds (danh sách string), hãy bảo toàn chúng
+                if (currentServices.length === 0) {
+                    const idsInProvider = providerSnapshot.exists() ? (providerSnapshot.data()?.serviceIds || []) : [];
+                    const idsInUser = userData.serviceIds || [];
+                    const allIds = [...new Set([...idsInProvider, ...idsInUser])];
+                    
+                    if (allIds.length > 0) {
+                        console.log(`[Approve] Reconstructing services from ${allIds.length} IDs for merge fallback`);
+                        currentServices = allIds.map(id => (typeof id === 'string' ? { serviceId: id } : id));
+                    }
+                }
+
+                console.log(`[Approve] Current services count: ${currentServices.length}, Changes count: ${changes.length}, Request type: ${requestDetails.requestType}`);
+
+                // THỰC HIỆN MERGE: 
+                // Ưu tiên merge nếu có currentServices HOẶC là request update
+                // Chỉ overwrite hoàn toàn nếu là REGISTRATION nguyên bản và KHÔNG CÓ dữ liệu cũ nào.
+                if (currentServices.length > 0 || isUpdate) {
+                    console.log("[Approve] Performing MERGE to preserve existing services");
+                    const baseServices = [...currentServices];
+                    
+                    changes.forEach(change => {
+                        const changeId = change.serviceId || change.id;
+                        const idx = baseServices.findIndex(s => (s.serviceId === changeId || s.id === changeId));
+                        
+                        if (change.changeType === 'added') {
+                            if (idx === -1) baseServices.push(change);
+                            else baseServices[idx] = { ...baseServices[idx], ...change };
+                        } else if (change.changeType === 'updated') {
+                            if (idx !== -1) baseServices[idx] = { ...baseServices[idx], ...change };
+                            else baseServices.push(change);
+                        } else if (change.changeType === 'deleted') {
+                            if (idx !== -1) {
+                                console.log(`[Approve] Removing service: ${changeId}`);
+                                baseServices.splice(idx, 1);
+                            }
+                        } else {
+                            // Default: Updated/Added
+                            if (idx === -1) baseServices.push(change);
+                            else baseServices[idx] = { ...baseServices[idx], ...change };
+                        }
+                    });
+                    finalServices = baseServices;
+                } else {
+                    console.log("[Approve] No existing services found, taking changes as-is (Initial Registration)");
+                    finalServices = changes;
+                }
+                
+                console.log(`[Approve] Final joined services count: ${finalServices.length}`);
+        } catch (e) {
+            console.error('Error calculating final services:', e);
+        }
+
+        // 2. Cập nhật collection 'users'
+        updateData = {
+            ...updateData,
+            isVerified: true,
+            verificationStatus: 'verified',
+            role: 'provider',
+            updatedAt: new Date(),
+            services: finalServices,
+            serviceIds: finalServices.map(s => s.serviceId || s.id)
+        };
+
+        if (requestDetails && requestDetails.fullName) updateData.full_name = requestDetails.fullName;
+        if (requestDetails && requestDetails.bio) updateData.bio = requestDetails.bio;
+
         await setDoc(providerRef, updateData, { merge: true });
 
-        // 2. Update Partner Request status (to ensure it moves out of Pending/Rejected tabs)
-        // Query to find the request by userId
-        const q = query(
-            collection(firestore, 'partner_requests'),
-            where('userId', '==', providerId)
-        );
+        // 3. Đồng bộ sang collection 'providers'
+        try {
+            const providersRef = doc(firestore, 'providers', providerId);
+            const providerSnapshot = await getDoc(providersRef);
+            
+            const providerSyncData = {
+                updatedAt: new Date(),
+                name: (requestDetails?.fullName || requestDetails?.name || updateData.full_name || userData.full_name || userData.name || 'Thợ'),
+                services: finalServices,
+                serviceIds: finalServices.map(s => s.serviceId || s.id)
+            };
 
-        const requestSnapshot = await getDocs(q);
-        const requestUpdatePromises = requestSnapshot.docs.map(d =>
-            updateDoc(doc(firestore, 'partner_requests', d.id), {
+            // Avatar Sync: prioritize new request > user data > existing provider data
+            const finalAvatarUrl = requestDetails?.portraitUrl || userData.avatar_url || userData.avatarUrl || userData.photoURL || providerSnapshot.data()?.avatarUrl || '';
+            if (finalAvatarUrl) {
+                providerSyncData.avatarUrl = finalAvatarUrl;
+            }
+
+            if (!providerSnapshot.exists()) {
+                providerSyncData.isOnline = false;
+                providerSyncData.rating = 5.0;
+                providerSyncData.reviewCount = 0;
+                providerSyncData.createdAt = new Date();
+            }
+
+            const prices = finalServices
+                .map(s => parseFloat(s.price.toString().replace(/\D/g, '')))
+                .filter(p => !isNaN(p) && p > 0);
+            
+            if (prices.length > 0) {
+                providerSyncData.price = Math.min(...prices);
+            }
+
+            if (requestDetails && requestDetails.bio) providerSyncData.bio = requestDetails.bio;
+            else if (updateData.bio) providerSyncData.bio = updateData.bio;
+            
+            await setDoc(providersRef, providerSyncData, { merge: true });
+        } catch (syncError) {
+            console.error('Error syncing to providers collection:', syncError);
+        }
+
+        // 4. Update Partner Request status
+        // Nếu có requestId cụ thể, update đơn đó. Nếu không, query đơn mới nhất.
+        if (requestId) {
+            await updateDoc(doc(firestore, 'partner_requests', requestId), {
                 status: 'approved',
                 updatedAt: new Date()
-            })
-        );
-
-        await Promise.all(requestUpdatePromises);
+            });
+        } else {
+            const q = query(
+                collection(firestore, 'partner_requests'),
+                where('userId', '==', providerId),
+                where('status', '==', 'pending')
+            );
+            const requestSnapshot = await getDocs(q);
+            const requestUpdatePromises = requestSnapshot.docs.map(d =>
+                updateDoc(doc(firestore, 'partner_requests', d.id), {
+                    status: 'approved',
+                    updatedAt: new Date()
+                })
+            );
+            await Promise.all(requestUpdatePromises);
+        }
 
         return true;
     } catch (error) {
@@ -175,35 +313,49 @@ export const approveProvider = async (providerId) => {
 /**
  * Từ chối thợ (Reject)
  */
-export const rejectProvider = async (providerId) => {
+export const rejectProvider = async (providerId, requestId, reason) => {
     try {
         const providerRef = doc(firestore, 'users', providerId);
 
-        // 1. Update User status
-        const updatePromise = updateDoc(providerRef, {
-            isVerified: false,
-            verificationStatus: 'rejected',
-            updatedAt: new Date()
-        });
+        // 1. Update User status (chỉ khi có User)
+        try {
+            const userSnap = await getDoc(providerRef);
+            if (userSnap.exists()) {
+                await updateDoc(providerRef, {
+                    isVerified: false,
+                    verificationStatus: 'rejected',
+                    updatedAt: new Date()
+                });
+            }
+        } catch (e) {
+            console.error('User might not exist for this request');
+        }
 
-        // 2. Update Partner Request status (if exists) to ensure consistency
-        // Query to find the request by userId
-        const q = query(
-            collection(firestore, 'partner_requests'),
-            where('userId', '==', providerId)
-        );
+        // 2. Update Partner Request status
+        if (requestId) {
+            await updateDoc(doc(firestore, 'partner_requests', requestId), {
+                status: 'rejected',
+                rejectReason: reason || 'Không có lý do cụ thể.',
+                updatedAt: new Date()
+            });
+        } else {
+            const q = query(
+                collection(firestore, 'partner_requests'),
+                where('userId', '==', providerId),
+                where('status', '==', 'pending')
+            );
 
-        const requestUpdatePromise = getDocs(q).then(snapshot => {
-            const updatePromises = snapshot.docs.map(d =>
+            const requestSnapshot = await getDocs(q);
+            const updatePromises = requestSnapshot.docs.map(d =>
                 updateDoc(doc(firestore, 'partner_requests', d.id), {
                     status: 'rejected',
+                    rejectReason: reason || 'Không có lý do cụ thể.',
                     updatedAt: new Date()
                 })
             );
-            return Promise.all(updatePromises);
-        });
-
-        await Promise.all([updatePromise, requestUpdatePromise]);
+            
+            await Promise.all(updatePromises);
+        }
 
         return true;
     } catch (error) {

@@ -10,7 +10,11 @@ import '../features/services/viewmodel/services_viewmodel.dart';
 import '../features/partner/data/repositories/partner_repository.dart';
 import '../features/partner/viewmodel/partner_viewmodel.dart';
 import '../features/provider/data/repositories/provider_repository.dart';
+import '../features/booking/data/repositories/booking_repository.dart';
+import '../features/booking/viewmodel/booking_viewmodel.dart';
 import '../features/home/viewmodel/home_viewmodel.dart';
+import '../features/home/data/repositories/banner_repository.dart';
+import '../features/chat/viewmodel/chat_list_viewmodel.dart';
 
 class AppProviders extends StatelessWidget {
   final Widget child;
@@ -27,6 +31,7 @@ class AppProviders extends StatelessWidget {
         Provider(create: (_) => PartnerRepository()),
         Provider(create: (_) => AddressRepository()),
         Provider(create: (_) => ProviderRepository()),
+        Provider(create: (_) => BannerRepository()),
         // ViewModels
         ChangeNotifierProvider(create: (_) => PermissionViewModel()),
         ChangeNotifierProvider(create: (_) => AddressViewModel()),
@@ -51,12 +56,44 @@ class AppProviders extends StatelessWidget {
           update: (context, repository, previous) =>
               previous ?? PartnerViewModel(repository: repository),
         ),
-        ChangeNotifierProxyProvider<ProviderRepository, HomeViewModel>(
+        ChangeNotifierProxyProvider2<ProviderRepository, BannerRepository,
+            HomeViewModel>(
           create: (context) => HomeViewModel(
             providerRepository: context.read<ProviderRepository>(),
+            bannerRepository: context.read<BannerRepository>(),
           ),
-          update: (context, repository, previous) =>
-              previous ?? HomeViewModel(providerRepository: repository),
+          update: (context, providerRepo, bannerRepo, previous) =>
+              previous ??
+              HomeViewModel(
+                providerRepository: providerRepo,
+                bannerRepository: bannerRepo,
+              ),
+        ),
+        // Booking
+        Provider(create: (_) => BookingRepository()),
+        ChangeNotifierProxyProvider3<ProviderRepository, ServiceRepository,
+            BookingRepository, BookingViewModel>(
+          create: (context) => BookingViewModel(
+            providerRepository: context.read<ProviderRepository>(),
+            serviceRepository: context.read<ServiceRepository>(),
+            bookingRepository: context.read<BookingRepository>(),
+          ),
+          update: (context, providerRepo, serviceRepo, bookingRepo, previous) =>
+              previous ??
+              BookingViewModel(
+                providerRepository: providerRepo,
+                serviceRepository: serviceRepo,
+                bookingRepository: bookingRepo,
+              ),
+        ),
+        ChangeNotifierProxyProvider<AuthViewModel, ChatListViewModel?>(
+          create: (context) => null,
+          update: (context, auth, previous) {
+            final userId = auth.currentUser?.uid;
+            if (userId == null) return null;
+            if (previous?.userId == userId) return previous;
+            return ChatListViewModel(userId: userId);
+          },
         ),
       ],
       child: child,

@@ -5,10 +5,17 @@ import '../../../../core/constants/app_colors.dart';
 import '../widgets/time/booking_time_slot.dart';
 import '../widgets/time/instant_booking_option.dart';
 import 'booking_address_screen.dart';
+import 'package:mobile/features/provider/data/models/provider_model.dart';
 
 class BookingTimeScreen extends StatefulWidget {
   final String serviceId;
-  const BookingTimeScreen({super.key, required this.serviceId});
+  final ProviderModel? preSelectedProvider; // NEW
+
+  const BookingTimeScreen({
+    super.key,
+    required this.serviceId,
+    this.preSelectedProvider, // NEW
+  });
 
   @override
   State<BookingTimeScreen> createState() => _BookingTimeScreenState();
@@ -194,6 +201,7 @@ class _BookingTimeScreenState extends State<BookingTimeScreen> {
                 builder: (context) => BookingAddressScreen(
                   serviceId: widget.serviceId,
                   bookingTime: bookingTime,
+                  preSelectedProvider: widget.preSelectedProvider, // NEW
                 ),
               ),
             );

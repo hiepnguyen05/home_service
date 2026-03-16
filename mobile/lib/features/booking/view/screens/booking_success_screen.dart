@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/features/booking/view/screens/order_tracking_screen.dart';
+import 'package:mobile/features/booking/data/models/booking_model.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../provider/data/models/provider_model.dart';
 import '../../../payment/data/models/payment_method.dart';
@@ -49,6 +51,7 @@ class BookingSuccessScreen extends StatelessWidget {
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             // 1. Header (Icon, Tiêu đề, Phụ đề)
             SuccessHeader(
@@ -65,7 +68,10 @@ class BookingSuccessScreen extends StatelessWidget {
             const SizedBox(height: 32),
 
             // 3. Nút hành động
-            SuccessActionButtons(provider: provider),
+            SuccessActionButtons(
+              provider: provider,
+              bookingId: bookingId,
+            ),
 
             const SizedBox(height: 32),
 
@@ -75,9 +81,28 @@ class BookingSuccessScreen extends StatelessWidget {
               height: 56,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  // TODO: Chuyển sang màn hình theo dõi
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Mở theo dõi đơn...")),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => OrderTrackingScreen(
+                        booking: BookingModel(
+                          id: bookingId,
+                          customerId: "", // Placeholder or fetch if needed
+                          providerId: provider.id,
+                          serviceId: "", // Placeholder
+                          scheduleAt: bookingTime,
+                          address:
+                              "", // Placeholder - BookingSuccess doesn't have address
+                          status: BookingStatus.confirmed,
+                          paymentMethod: paymentMethod == PaymentMethod.cash
+                              ? BookingPaymentMethod.COD
+                              : BookingPaymentMethod.eWallet,
+                          createdAt: DateTime.now(),
+                        ),
+                        provider: provider,
+                        serviceName: serviceName,
+                      ),
+                    ),
                   );
                 },
                 icon: const Icon(Icons.map_outlined, color: Colors.white),

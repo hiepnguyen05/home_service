@@ -237,11 +237,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       _buildDivider(),
                       _buildMenuItem(
-                        icon: Icons.credit_card,
+                        icon: user.isProvider
+                            ? Icons.visibility_outlined
+                            : Icons.credit_card,
                         iconColor: Colors.green,
-                        title: 'Phương thức thanh toán',
+                        title: user.isProvider
+                            ? 'Xem trước hồ sơ'
+                            : 'Phương thức thanh toán',
                         onTap: () {
-                          // TODO: Navigate to payment methods
+                          if (user.isProvider) {
+                            Navigator.pushNamed(
+                                context, AppRoutes.providerDetail);
+                          } else {
+                            // TODO: Navigate to payment methods
+                          }
                         },
                       ),
                       _buildDivider(),

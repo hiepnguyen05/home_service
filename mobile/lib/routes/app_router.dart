@@ -20,6 +20,7 @@ import '../features/provider/view/screens/provider_main_screen.dart';
 import '../features/partner/view/screens/bio_experience_screen.dart';
 import '../features/booking/view/screens/booking_time_screen.dart';
 import '../features/booking/view/screens/booking_address_screen.dart';
+import '../features/provider/view/screens/provider_detail_screen.dart';
 
 class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -81,6 +82,8 @@ class AppRouter {
         return MaterialPageRoute(
           builder: (_) => BookingTimeScreen(serviceId: serviceId),
         );
+      case AppRoutes.providerDetail:
+        return MaterialPageRoute(builder: (_) => const ProviderDetailScreen());
       default:
         return MaterialPageRoute(
           builder: (_) => const SplashScreen(), // Default to splash screen

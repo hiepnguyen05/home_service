@@ -34,6 +34,7 @@ class SuccessHeader extends StatelessWidget {
     final String title = "Đặt lịch thành công!";
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           width: 80,

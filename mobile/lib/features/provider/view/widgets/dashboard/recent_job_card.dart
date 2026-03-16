@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_colors.dart';
+import 'package:mobile/core/constants/app_colors.dart';
 
 /// Reusable job card widget for provider screens
 class RecentJobCard extends StatelessWidget {

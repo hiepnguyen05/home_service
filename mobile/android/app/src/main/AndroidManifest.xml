@@ -44,8 +44,11 @@
                     android:host="payment-callback" />
             </intent-filter>
         </activity>
-        <!-- Don't delete the meta-data below.
-             This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+        <!-- FCM Configuration -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="high_importance_channel" />
+        
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
@@ -64,6 +67,24 @@
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="momo" />
+        </intent>
+        <!-- Cho phép gọi điện -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="tel" />
+        </intent>
+        <!-- Google Maps -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="geo" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="google.navigation" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" android:host="www.google.com" />
         </intent>
     </queries>
 </manifest>

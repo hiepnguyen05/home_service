@@ -14,16 +14,20 @@ import '../widgets/address/address_mini_map.dart';
 import '../widgets/address/address_search_bar.dart';
 import '../widgets/address/current_location_button.dart';
 import '../widgets/address/saved_address_list.dart';
-import 'booking_provider_screen.dart';
+import 'package:mobile/features/booking/view/screens/booking_provider_screen.dart';
+import 'package:mobile/features/booking/view/screens/booking_confirmation_screen.dart';
+import 'package:mobile/features/provider/data/models/provider_model.dart';
 
 class BookingAddressScreen extends StatefulWidget {
   final String serviceId;
-  final DateTime bookingTime; // NEW
+  final DateTime bookingTime;
+  final ProviderModel? preSelectedProvider; // NEW
 
   const BookingAddressScreen({
     super.key,
     required this.serviceId,
-    required this.bookingTime, // NEW
+    required this.bookingTime,
+    this.preSelectedProvider, // NEW
   });
 
   @override
@@ -32,6 +36,7 @@ class BookingAddressScreen extends StatefulWidget {
 
 class _BookingAddressScreenState extends State<BookingAddressScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController(); // NEW
   Timer? _debounce;
 
   String? _selectedId;
@@ -52,6 +57,7 @@ class _BookingAddressScreenState extends State<BookingAddressScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _noteController.dispose(); // NEW
     _debounce?.cancel();
     super.dispose();
   }
@@ -282,6 +288,31 @@ class _BookingAddressScreenState extends State<BookingAddressScreen> {
                     ))
                   ],
 
+                  const SizedBox(height: 24),
+
+                  // --- NEW: Ghi chú ---
+                  const Text("Ghi chú cho thợ (Tùy chọn)",
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _noteController,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: "Ví dụ: Nhà có chó dữ, vui lòng gọi trước...",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Colors.grey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.primary),
+                      ),
+                      contentPadding: const EdgeInsets.all(12),
+                    ),
+                  ),
+                  // --------------------
+
                   const SizedBox(height: 100),
                 ],
               ),
@@ -321,18 +352,45 @@ class _BookingAddressScreenState extends State<BookingAddressScreen> {
                         addressText = _searchController.text;
                       }
 
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => BookingProviderScreen(
-                            userLat: _displayLat!,
-                            userLng: _displayLng!,
-                            serviceId: widget.serviceId,
-                            bookingTime: widget.bookingTime,
-                            address: addressText,
+                      if (widget.preSelectedProvider != null) {
+                        // BYPASS: To Confirmation directly
+                        final selectedService = widget.preSelectedProvider!.services?.firstWhere(
+                          (s) => s.serviceId == widget.serviceId,
+                          orElse: () => widget.preSelectedProvider!.services!.first,
+                        );
+
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BookingConfirmationScreen(
+                              provider: widget.preSelectedProvider!,
+                              serviceName: selectedService?.serviceName ?? "",
+                              serviceId: widget.serviceId,
+                              bookingTime: widget.bookingTime,
+                              address: addressText,
+                              userLat: _displayLat!,
+                              userLng: _displayLng!,
+                              note: _noteController.text.trim(),
+                              priceUnit: 'giờ', // default for bypass flow
+                            ),
                           ),
-                        ),
-                      );
+                        );
+                      } else {
+                        // NORMAL FLOW: To Provider Selection
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BookingProviderScreen(
+                              userLat: _displayLat!,
+                              userLng: _displayLng!,
+                              serviceId: widget.serviceId,
+                              bookingTime: widget.bookingTime,
+                              address: addressText,
+                              note: _noteController.text.trim(),
+                            ),
+                          ),
+                        );
+                      }
                     }
                   }
                 : null,

@@ -163,10 +163,14 @@ const ProviderManager = () => {
      * Xử lý duyệt thợ (Approve).
      * @param {string} providerId - ID của thợ cần duyệt.
      */
-    const handleApprove = async (providerId) => {
+    const handleApprove = async (providerId, requestId) => {
+        // Chú ý: Nếu gọi từ tab Pending, providerId có thể là requestId (do ProviderTable truyền provider.id)
+        // Ta cần xác định đúng cái nào là cái nào.
+        // Tuy nhiên, để an toàn và nhất quán, ta sẽ update ProviderTable để truyền cả 2.
+        
         if (window.confirm('Xác nhận duyệt thợ này?')) {
             try {
-                await approveProvider(providerId);
+                await approveProvider(providerId, requestId);
                 refreshData();
                 alert('Đã duyệt thợ thành công!');
             } catch (err) {
@@ -180,7 +184,7 @@ const ProviderManager = () => {
      * Xử lý từ chối thợ (Reject).
      * @param {string} providerId - ID của thợ bị từ chối.
      */
-    const handleReject = async (providerId) => {
+    const handleReject = async (providerId, requestId) => {
         const reason = window.prompt('Nhập lý do từ chối (bắt buộc):');
         if (reason === null) return; // Người dùng ấn Cancel
         if (!reason.trim()) {
@@ -190,7 +194,7 @@ const ProviderManager = () => {
 
         if (window.confirm('Xác nhận từ chối thợ này?')) {
             try {
-                await rejectProvider(providerId, reason);
+                await rejectProvider(providerId, requestId, reason);
                 refreshData();
                 alert('Đã từ chối thợ!');
             } catch (err) {

@@ -125,6 +125,7 @@ class PartnerRepository {
       final snapshot = await _firestore
           .collection('partner_requests')
           .where('userId', isEqualTo: userId)
+          .orderBy('createdAt', descending: true)
           .limit(1)
           .get();
 
@@ -138,6 +139,40 @@ class PartnerRepository {
     } catch (e) {
       debugPrint('[PartnerRepository] getLastApplication error: $e');
       return null;
+    }
+  }
+
+  // Submit profile update request (skills, prices)
+  Future<void> submitUpdate({
+    required String userId,
+    required String fullName,
+    required String phoneNumber,
+    required List<PartnerServiceRequest> services,
+    String? bio,
+    double? experienceYears,
+  }) async {
+    try {
+      final existingReq = await getLastApplication(userId);
+      
+      final data = {
+        'userId': userId,
+        'fullName': fullName,
+        'phoneNumber': phoneNumber,
+        'services': services.map((s) => s.toMap()).toList(),
+        'bio': bio,
+        'experienceYears': experienceYears,
+        'status': 'pending',
+        'requestType': 'update',
+        'createdAt': FieldValue.serverTimestamp(),
+        'idFrontUrl': existingReq?.idFrontUrl ?? '',
+        'idBackUrl': existingReq?.idBackUrl ?? '',
+        'certificates': existingReq?.certificates ?? [],
+        'portraitUrl': existingReq?.portraitUrl,
+      };
+
+      await _firestore.collection('partner_requests').add(data);
+    } catch (e) {
+      throw Exception('Lỗi khi gửi yêu cầu cập nhật: $e');
     }
   }
 }

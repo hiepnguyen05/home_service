@@ -1,10 +1,13 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import PrivateRoute from './components/Auth/PrivateRoute'
+import AdminDashboard from './pages/Dashboard/AdminDashboard.jsx'
 import CustomerManager from './pages/Customers/CustomerManager.jsx'
 import ProviderManager from './pages/Providers/ProviderManager.jsx'
 import CategoriesManager from './pages/Categories/CategoriesManager.jsx'
 import ServiceManager from './pages/Services/ServiceManager.jsx'
+import SettingsManager from './pages/Settings/SettingsManager.jsx'
+import WorkerApplications from './pages/WorkerApplications/WorkerApplications.jsx'
 import AdminLogin from './pages/Login/AdminLogin.jsx'
 import AdminLayout from './layouts/AdminLayout'
 import './App.css'
@@ -16,7 +19,13 @@ function App() {
         <Routes>
           <Route path="/admin-login" element={<AdminLogin />} />
 
-          <Route path="/" element={<Navigate to="/customers" />} />
+          <Route path="/" element={<Navigate to="/dashboard" />} />
+
+          <Route path="/dashboard" element={
+            <PrivateRoute>
+              <AdminLayout title="Bảng điều khiển"><AdminDashboard /></AdminLayout>
+            </PrivateRoute>
+          } />
 
           <Route path="/customers" element={
             <PrivateRoute>
@@ -27,6 +36,12 @@ function App() {
           <Route path="/providers" element={
             <PrivateRoute>
               <AdminLayout title="Quản lý Thợ"><ProviderManager /></AdminLayout>
+            </PrivateRoute>
+          } />
+
+          <Route path="/applications" element={
+            <PrivateRoute>
+              <AdminLayout title="Duyệt hồ sơ"><WorkerApplications /></AdminLayout>
             </PrivateRoute>
           } />
 
@@ -56,11 +71,11 @@ function App() {
 
           <Route path="/settings" element={
             <PrivateRoute>
-              <AdminLayout title="Cài đặt"><div>Trang Cài đặt (Đang phát triển)</div></AdminLayout>
+              <AdminLayout title="Cài đặt"><SettingsManager /></AdminLayout>
             </PrivateRoute>
           } />
 
-          <Route path="*" element={<Navigate to="/customers" />} />
+          <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>
       </Router>
     </AuthProvider>

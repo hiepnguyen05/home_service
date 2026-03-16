@@ -2,26 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 
+import 'package:mobile/features/auth/viewmodel/auth_viewmodel.dart';
+import 'package:mobile/features/chat/view/screens/chat_screen.dart';
 import '../../viewmodel/booking_viewmodel.dart';
 import '../widgets/common/booking_stepper.dart';
 import '../widgets/provider/provider_filter_bar.dart';
 import '../widgets/provider/booking_provider_list.dart';
 import 'booking_confirmation_screen.dart';
+import 'package:mobile/features/provider/view/screens/provider_detail_screen.dart';
 
 class BookingProviderScreen extends StatefulWidget {
   final double userLat;
   final double userLng;
   final String? serviceId;
   final DateTime bookingTime; // NEW
-  final String address; // NEW
+  final String address;
+  final String? note; // NEW
 
   const BookingProviderScreen({
     super.key,
     required this.userLat,
     required this.userLng,
     this.serviceId,
-    required this.bookingTime, // NEW
-    required this.address, // NEW
+    required this.bookingTime,
+    required this.address,
+    this.note, // NEW
   });
 
   @override
@@ -40,6 +45,8 @@ class _BookingProviderScreenState extends State<BookingProviderScreen> {
       userLat: widget.userLat,
       userLng: widget.userLng,
       serviceId: widget.serviceId,
+      bookingTime:
+          widget.bookingTime, // Pass booking time to filter availability
     );
   }
 
@@ -124,13 +131,45 @@ class _BookingProviderScreenState extends State<BookingProviderScreen> {
                       });
                     },
                     onChat: (provider) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("Chat với ${provider.name}")),
+                      final authViewModel = context.read<AuthViewModel>();
+                      final currentUserId =
+                          authViewModel.currentUser?.uid ?? '';
+
+                      // Tạo ID chat tạm thời cho tư vấn trước khi đặt lịch
+                      final chatId = "pre_${currentUserId}_${provider.id}";
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatScreen(
+                            bookingId: chatId,
+                            targetUserId: provider.id,
+                            otherUserName: provider.name,
+                            otherUserAvatar: provider.avatarUrl,
+                          ),
+                        ),
                       );
                     },
                     userLat: widget.userLat,
                     userLng: widget.userLng,
                     priceUnit: viewModel.priceUnit,
+                    onViewDetail: (provider) async {
+                      final selectedId = await Navigator.push<String>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProviderDetailScreen(
+                            provider: provider,
+                            isViewOnly: true,
+                          ),
+                        ),
+                      );
+
+                      if (selectedId != null && mounted) {
+                        setState(() {
+                          _selectedProviderId = selectedId;
+                        });
+                      }
+                    },
                   );
                 },
               ),
@@ -164,10 +203,11 @@ class _BookingProviderScreenState extends State<BookingProviderScreen> {
         height: 52,
         child: ElevatedButton(
           onPressed: () {
-            // Chuyển sang màn hình xác nhận
+            // 1. Lấy thông tin provider đã chọn
             final selectedProvider = _viewModel.providers
                 .firstWhere((p) => p.id == _selectedProviderId);
 
+            // 2. Chuyển sang màn hình xác nhận (Booking chưa tạo)
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -179,6 +219,8 @@ class _BookingProviderScreenState extends State<BookingProviderScreen> {
                   address: widget.address,
                   userLat: widget.userLat,
                   userLng: widget.userLng,
+                  note: widget.note,
+                  priceUnit: _viewModel.priceUnit, // Pass loaded price unit
                 ),
               ),
             );

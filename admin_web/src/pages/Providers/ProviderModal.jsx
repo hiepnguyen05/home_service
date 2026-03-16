@@ -35,7 +35,8 @@ const ProviderModal = ({ isOpen, onClose, onSubmit, provider, isEditing, viewMod
                     address: provider.address || '',
                     idCardImages: provider.idCardImages || [],
                     workImages: provider.workImages || [],
-                    serviceIds: provider.serviceIds || []
+                    serviceIds: provider.serviceIds || [],
+                    services: provider.services || [] // Thêm services kèm giá
                 };
 
                 // Fetch extra details from partner_requests if needed (especially for images)
@@ -293,7 +294,30 @@ const ProviderModal = ({ isOpen, onClose, onSubmit, provider, isEditing, viewMod
                         <div className="space-y-4">
                             <h4 className="font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-2">Dịch vụ cung cấp</h4>
                             <div>
-                                {formData.serviceIds && formData.serviceIds.length > 0 ? (
+                                {formData.services && formData.services.length > 0 ? (
+                                    <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+                                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+                                            <thead className="bg-slate-50 dark:bg-slate-800/50">
+                                                <tr>
+                                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Dịch vụ</th>
+                                                    <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase">Giá tiền</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                                {formData.services.map((svc, index) => (
+                                                    <tr key={index} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                                                        <td className="px-4 py-2 text-sm text-slate-700 dark:text-slate-300">
+                                                            {svc.serviceName || serviceMap[svc.serviceId] || svc.serviceId}
+                                                        </td>
+                                                        <td className="px-4 py-2 text-sm text-right font-medium text-green-600 dark:text-green-400">
+                                                            {svc.price} VNĐ
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : formData.serviceIds && formData.serviceIds.length > 0 ? (
                                     <div className="flex flex-wrap gap-2">
                                         {formData.serviceIds.map((sid, index) => (
                                             <span key={index} className="px-3 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full text-sm font-medium border border-green-200 dark:border-green-800">

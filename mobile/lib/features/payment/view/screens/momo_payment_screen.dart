@@ -5,11 +5,14 @@ import '../../../../core/widgets/app_dialog.dart';
 import '../../data/services/payment_api_service.dart';
 import '../widgets/momo/momo_payment_info_card.dart';
 import '../widgets/momo/momo_instruction_card.dart';
+import '../../../booking/data/repositories/booking_repository.dart'; // Added
+import '../../../booking/data/models/booking_model.dart'; // Added
 
 class MoMoPaymentScreen extends StatefulWidget {
   final MoMoPaymentResult paymentResult;
   final String serviceName;
   final double amount;
+  final String bookingId; // NEW: Should pass bookingId explicitly
   final Function(bool success) onPaymentComplete;
 
   const MoMoPaymentScreen({
@@ -17,6 +20,7 @@ class MoMoPaymentScreen extends StatefulWidget {
     required this.paymentResult,
     required this.serviceName,
     required this.amount,
+    required this.bookingId, // NEW
     required this.onPaymentComplete,
   });
 
@@ -31,6 +35,11 @@ class _MoMoPaymentScreenState extends State<MoMoPaymentScreen> {
   Timer? _countdownTimer;
   int _countdownSeconds = 300; // 5 phút
 
+  // Booking Status Listener
+  StreamSubscription<BookingModel>? _bookingSubscription;
+  final BookingRepository _bookingRepository =
+      BookingRepository(); // Or use Provider if available globally
+
   // Deep Link
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
@@ -41,6 +50,52 @@ class _MoMoPaymentScreenState extends State<MoMoPaymentScreen> {
     _startCountdown();
     _startPolling();
     _initDeepLinkListener();
+    _listenToBookingCancellation();
+  }
+
+  void _listenToBookingCancellation() {
+    final bookingId = widget.bookingId;
+    // if (bookingId == null) return; // bookingId is required now
+
+    debugPrint(
+        "👀 [MoMoPayment] Listening to booking status for cancellation: $bookingId");
+    _bookingSubscription =
+        _bookingRepository.streamBooking(bookingId).listen((booking) {
+      if (booking.status == BookingStatus.cancelled) {
+        debugPrint("❌ [MoMoPayment] Provider cancelled booking while paying!");
+        if (mounted) {
+          _showCancellationDialog();
+        }
+      }
+    }, onError: (e) {
+      debugPrint("Error listening to booking status: $e");
+    });
+  }
+
+  void _showCancellationDialog() {
+    _pollingTimer?.cancel();
+    _countdownTimer?.cancel();
+    // Ensure we don't show multiple dialogs or perform multiple pops
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Đơn hàng đã bị hủy"),
+        content: const Text("Thợ đã hủy yêu cầu của bạn. Vui lòng thử lại."),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop(); // Close dialog
+              Navigator.of(context).pop(); // Close MoMo screen
+              widget.onPaymentComplete(false);
+            },
+            child: const Text("Đồng ý"),
+          ),
+        ],
+      ),
+    );
   }
 
   void _initDeepLinkListener() {
@@ -72,20 +127,34 @@ class _MoMoPaymentScreenState extends State<MoMoPaymentScreen> {
 
   Future<void> _confirmPaymentAndComplete(
       String orderId, String resultCode) async {
+    debugPrint('[MOMO_DEEPLINK] Confirming payment for orderId: $orderId');
     // Gọi API confirm để cập nhật DB
     final confirmed = await _apiService.confirmPayment(orderId, resultCode);
     debugPrint('[MOMO_DEEPLINK] Confirm API result: $confirmed');
 
     if (confirmed && mounted) {
+      debugPrint('[MOMO_DEEPLINK] ✅ Success! Closing MomMo screen...');
       _pollingTimer?.cancel();
       _countdownTimer?.cancel();
       Navigator.pop(context);
       widget.onPaymentComplete(true);
+    } else {
+      debugPrint(
+          '[MOMO_DEEPLINK] ❌ Confirm failed. Status might be pending or API error.');
+      // Fallback: Check status one last time to be sure?
+      // Or just let polling continue.
+      if (resultCode == '0') {
+        // If result code is 0 (Success from App), but API confirm failed (maybe network?),
+        // we could optimistically succeed OR force a status check.
+        // Let's force a status check immediately.
+        await _checkPaymentStatus();
+      }
     }
   }
 
   @override
   void dispose() {
+    _bookingSubscription?.cancel();
     _linkSubscription?.cancel();
     _pollingTimer?.cancel();
     _countdownTimer?.cancel();

@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart'; // Removed
 import 'package:mobile/core/services/distance_service.dart';
 import 'package:mobile/features/provider/data/models/provider_model.dart';
 import 'package:mobile/features/provider/data/repositories/provider_repository.dart';
@@ -9,6 +11,27 @@ import 'package:mobile/features/booking/data/models/booking_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:uuid/uuid.dart';
 import '../view/widgets/provider/provider_filter_bar.dart';
+
+// --- Kết quả trả về của quá trình đặt lịch ---
+sealed class BookingResult {}
+
+class BookingSuccess extends BookingResult {
+  final BookingModel booking;
+  BookingSuccess(this.booking);
+}
+
+class BookingRequiresPayment extends BookingResult {
+  final BookingModel booking;
+  final double amount;
+  final String orderInfo;
+  BookingRequiresPayment(this.booking, this.amount, this.orderInfo);
+}
+
+class BookingFailure extends BookingResult {
+  final String error;
+  BookingFailure(this.error);
+}
+// ----------------------------------------------
 
 class BookingViewModel extends ChangeNotifier {
   final ProviderRepository _providerRepository;
@@ -33,6 +56,8 @@ class BookingViewModel extends ChangeNotifier {
   PaymentMethod _paymentMethod = PaymentMethod.momo;
   String? _error;
 
+  int _quantity = 1; // NEW State
+
   // Getters
   List<ProviderModel> get providers => _providers;
   bool get isLoading => _isLoading;
@@ -43,14 +68,30 @@ class BookingViewModel extends ChangeNotifier {
   PaymentMethod get paymentMethod => _paymentMethod;
   String? get error => _error;
 
+  int get quantity => _quantity; // NEW Getter
+
+  BookingModel? _currentBooking;
+  BookingModel? get currentBooking => _currentBooking;
+
+  /// Set price unit from external source (e.g. previous screen)
+  void setPriceUnit(String unit) {
+    _priceUnit = unit;
+    if (_priceUnit == 'giờ') {
+      _paymentMethod = PaymentMethod.cash;
+    }
+    notifyListeners();
+  }
+
   /// Load providers và service data
   Future<void> loadProviders({
     required double userLat,
     required double userLng,
     String? serviceId,
+    DateTime? bookingTime, // NEW
   }) async {
     _isLoading = true;
     _error = null;
+    _quantity = 1; // Reset quantity
     notifyListeners();
 
     try {
@@ -58,10 +99,15 @@ class BookingViewModel extends ChangeNotifier {
       if (serviceId != null) {
         await _loadServiceData(serviceId);
       }
-
       // 2. Load providers
-      List<ProviderModel> allProviders =
-          await _providerRepository.getProviders();
+      List<ProviderModel> allProviders;
+      // if (bookingTime != null) {
+      //   // Filter by availability if time is known
+      //   allProviders =
+      //       await _providerRepository.getAvailableProviders(bookingTime);
+      // } else {
+      allProviders = await _providerRepository.getProviders();
+      // }
 
       // 3. Lọc theo service ID
       List<ProviderModel> filteredList = allProviders.where((p) {
@@ -96,61 +142,13 @@ class BookingViewModel extends ChangeNotifier {
       final service = await _serviceRepository.getServiceById(serviceId);
       _priceUnit = service.priceUnit;
       _serviceName = service.name;
+
+      // Nếu là giờ -> Chỉ cho phép Tiền mặt (Trả sau)
+      if (_priceUnit == 'giờ') {
+        _paymentMethod = PaymentMethod.cash;
+      }
     } catch (e) {
       print("⚠️ [VM] Không lấy được service data: $e");
-    }
-  }
-
-  /// Tạo đơn đặt lịch mới
-  Future<BookingModel?> createBooking({
-    required ProviderModel provider,
-    required String serviceId,
-    required DateTime scheduledAt,
-    required String address,
-    required double totalPrice,
-  }) async {
-    _isCreatingBooking = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null) {
-        throw Exception("Vui lòng đăng nhập để đặt lịch");
-      }
-
-      // Tạo booking ID
-      final bookingId = const Uuid().v4();
-
-      // Chuyển đổi PaymentMethod enum sang string cho Firestore
-      final paymentMethodStr = _paymentMethod == PaymentMethod.cash
-          ? BookingPaymentMethod.COD
-          : BookingPaymentMethod.eWallet;
-
-      final booking = BookingModel(
-        id: bookingId,
-        customerId: currentUser.uid,
-        serviceId: serviceId,
-        providerId: provider.id,
-        scheduleAt: scheduledAt,
-        address: address,
-        status: BookingStatus.pending,
-        totalPrice: totalPrice,
-        paymentMethod: paymentMethodStr,
-        createdAt: DateTime.now(),
-      );
-
-      await _bookingRepository.createBooking(booking);
-
-      _isCreatingBooking = false;
-      notifyListeners();
-
-      return booking;
-    } catch (e) {
-      _error = e.toString();
-      _isCreatingBooking = false;
-      notifyListeners();
-      return null;
     }
   }
 
@@ -163,6 +161,10 @@ class BookingViewModel extends ChangeNotifier {
 
   /// Thay đổi phương thức thanh toán
   void setPaymentMethod(PaymentMethod method) {
+    // Nếu là giờ -> Không cho đổi sang online (vì chưa chốt giá)
+    if (_priceUnit == 'giờ' && method == PaymentMethod.momo) {
+      return;
+    }
     _paymentMethod = method;
     notifyListeners();
   }
@@ -173,7 +175,6 @@ class BookingViewModel extends ChangeNotifier {
 
     switch (_selectedFilter) {
       case ProviderFilter.nearest:
-        // Sắp xếp theo khoảng cách (gần nhất)
         _providers.sort((a, b) {
           final distA = DistanceService.calculateDistance(
               userLat, userLng, a.latitude, a.longitude);
@@ -182,22 +183,149 @@ class BookingViewModel extends ChangeNotifier {
           return distA.compareTo(distB);
         });
         break;
-
       case ProviderFilter.topRated:
-        // Sắp xếp theo đánh giá (cao nhất)
         _providers.sort((a, b) => b.rating.compareTo(a.rating));
         break;
-
       case ProviderFilter.lowPrice:
-        // Sắp xếp theo giá (thấp nhất)
         _providers.sort((a, b) => a.price.compareTo(b.price));
         break;
     }
   }
 
-  /// Tính tổng tiền (Ví dụ: Giá provider + Phí nền tảng)
+  /// Tăng giảm số lượng
+  void updateQuantity(int delta) {
+    int newQuantity = _quantity + delta;
+    if (newQuantity < 1) newQuantity = 1;
+    _quantity = newQuantity;
+    notifyListeners();
+  }
+
+  /// Tính tổng tiền
   double calculateTotalPrice(double providerPrice) {
-    const platformFee = 0.0; // Hiện tại chưa thu phí nền tảng
-    return providerPrice + platformFee;
+    const platformFee = 0.0;
+    // Nếu là giờ, giá hiển thị là giá/giờ, tổng tiền ban đầu = giá * 1 giờ (ước tính)
+    // Nếu là đơn vị khác, tổng tiền = giá * số lượng
+    if (_priceUnit == 'giờ') {
+      return providerPrice + platformFee; // Giá 1 giờ
+    }
+    return (providerPrice * _quantity) + platformFee;
+  }
+
+  /// Gửi yêu cầu đặt lịch (Bước 1: Pending -> Chờ Provider Confirm)
+  Future<BookingModel?> createBookingRequest({
+    required ProviderModel provider,
+    required String serviceId,
+    required DateTime scheduledAt,
+    required String address,
+    required double totalPrice,
+    required PaymentMethod paymentMethod,
+    String? note,
+    required double userLat, // NEW
+    required double userLng, // NEW
+  }) async {
+    _isCreatingBooking = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      print(
+          "🚀 [BookingVM] Creating request to Provider: ${provider.id} | Service: $serviceId");
+
+      // Convert Payment Method
+      final paymentMethodStr = paymentMethod == PaymentMethod.cash
+          ? BookingPaymentMethod.COD
+          : BookingPaymentMethod.eWallet;
+
+      // Create Booking object
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) throw Exception("Vui lòng đăng nhập");
+
+      final bookingId = const Uuid().v4();
+      final booking = BookingModel(
+        id: bookingId,
+        customerId: currentUser.uid,
+        serviceId: serviceId,
+        providerId: provider.id,
+        scheduleAt: scheduledAt,
+        address: address,
+        status: BookingStatus.pending,
+        totalPrice: totalPrice,
+        paymentMethod: paymentMethodStr,
+        createdAt: DateTime.now(),
+        note: note ?? "",
+        quantity: _quantity,
+        priceUnit: _priceUnit,
+        latitude: userLat, // Save coordinates
+        longitude: userLng, // Save coordinates
+      );
+
+      await _bookingRepository.createBooking(booking);
+
+      print(
+          "✅ [BookingVM] Booking Created: ${booking.id} | Status: ${booking.status}");
+      _currentBooking = booking; // Assign to state
+      return booking;
+    } catch (e) {
+      _error = e.toString();
+      return null;
+    } finally {
+      _isCreatingBooking = false;
+      notifyListeners();
+    }
+  }
+  // --- Real-time Booking Logic ---
+
+  /// Helper cho WaitingForProviderDialog (Legacy)
+  Stream<BookingModel> streamBooking(String bookingId) {
+    return _bookingRepository.streamBooking(bookingId);
+  }
+
+  StreamSubscription<BookingModel>? _trackingSubscription;
+  BookingModel? _trackingBooking;
+  BookingModel? get trackingBooking => _trackingBooking;
+
+  /// Bắt đầu theo dõi đơn hàng (Real-time)
+  void startTrackingBooking(String bookingId) {
+    stopTrackingBooking(); // Cancel existing if any
+    _error = null;
+    notifyListeners();
+
+    try {
+      _trackingSubscription =
+          _bookingRepository.streamBooking(bookingId).listen((booking) {
+        _trackingBooking = booking;
+        notifyListeners();
+      }, onError: (e) {
+        _error = "Lỗi theo dõi đơn hàng: $e";
+        notifyListeners();
+      });
+    } catch (e) {
+      _error = "Không thể theo dõi đơn hàng: $e";
+      notifyListeners();
+    }
+  }
+
+  /// Dừng theo dõi
+  void stopTrackingBooking() {
+    _trackingSubscription?.cancel();
+    _trackingSubscription = null;
+    _trackingBooking = null;
+  }
+
+  @override
+  void dispose() {
+    stopTrackingBooking();
+    super.dispose();
+  }
+
+  /// Hủy đơn hàng (khi timeout hoặc user hủy)
+  Future<void> cancelBooking(String bookingId, {String reason = ""}) async {
+    try {
+      await _bookingRepository.updateBookingStatus(
+          bookingId, BookingStatus.cancelled);
+      // Note is updated separately if needed, or update repo to support note
+    } catch (e) {
+      debugPrint("Error cancelling booking: $e");
+    }
   }
 }

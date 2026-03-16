@@ -8,6 +8,7 @@ class BookingProviderList extends StatefulWidget {
   final String? selectedProviderId;
   final Function(String) onProviderSelected;
   final Function(ProviderModel) onChat;
+  final Function(ProviderModel) onViewDetail;
   final double userLat;
   final double userLng;
   final String priceUnit;
@@ -18,6 +19,7 @@ class BookingProviderList extends StatefulWidget {
     required this.selectedProviderId,
     required this.onProviderSelected,
     required this.onChat,
+    required this.onViewDetail,
     required this.userLat,
     required this.userLng,
     required this.priceUnit,
@@ -64,6 +66,7 @@ class _BookingProviderListState extends State<BookingProviderList> {
           isSelected: widget.selectedProviderId == provider.id,
           onTap: () => widget.onProviderSelected(provider.id),
           onChat: () => widget.onChat(provider),
+          onViewDetail: () => widget.onViewDetail(provider),
         );
       },
     );

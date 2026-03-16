@@ -87,7 +87,16 @@ const ProviderTable = ({
                                             </div>
                                             <div>
                                                 <p className="text-sm font-semibold">{provider.full_name || provider.name || provider.displayName || 'Chưa cập nhật'}</p>
-                                                <div className="flex items-center gap-1 group/id">
+                                                {activeTab === 'pending' && (
+                                                    <span className={`inline-block px-1.5 py-0.5 mt-0.5 rounded text-[10px] font-bold uppercase ${
+                                                        provider.requestType === 'update' 
+                                                        ? 'bg-blue-100 text-blue-700 border border-blue-200' 
+                                                        : 'bg-green-100 text-green-700 border border-green-200'
+                                                    }`}>
+                                                        {provider.requestType === 'update' ? 'Cập nhật' : 'Đăng ký'}
+                                                    </span>
+                                                )}
+                                                <div className="flex items-center gap-1 group/id mt-0.5">
                                                     <p className="text-xs text-slate-500 font-mono" title={provider.id}>
                                                         ID: {provider.id.slice(0, 8)}...
                                                     </p>
@@ -194,7 +203,7 @@ const ProviderTable = ({
 
                                             {(activeTab === 'pending' || activeTab === 'rejected') && (
                                                 <button
-                                                    onClick={() => onApprove(provider.id)}
+                                                    onClick={() => onApprove(provider.userId || provider.id, provider.id)}
                                                     className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-md text-slate-500 hover:text-blue-600 transition-colors"
                                                     title="Duyệt"
                                                 >
@@ -204,7 +213,7 @@ const ProviderTable = ({
 
                                             {activeTab === 'pending' && (
                                                 <button
-                                                    onClick={() => onReject(provider.id)}
+                                                    onClick={() => onReject(provider.userId || provider.id, provider.id)}
                                                     className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-md text-slate-500 hover:text-red-600 transition-colors"
                                                     title="Từ chối"
                                                 >
@@ -235,7 +244,7 @@ const ProviderTable = ({
                                             <button
                                                 className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-md text-slate-500 hover:text-red-600 transition-colors"
                                                 title="Xóa"
-                                                onClick={() => onDelete(provider.id)}
+                                                onClick={() => onDelete(provider.userId || provider.id)}
                                             >
                                                 <span className="material-symbols-outlined text-[20px]">delete</span>
                                             </button>

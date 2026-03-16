@@ -3,22 +3,30 @@ import 'package:geolocator/geolocator.dart';
 import '../../../core/services/distance_service.dart';
 import '../../provider/data/models/provider_model.dart';
 import '../../provider/data/repositories/provider_repository.dart';
+import '../data/models/banner_model.dart';
+import '../data/repositories/banner_repository.dart';
 
 class HomeViewModel extends ChangeNotifier {
   final ProviderRepository _providerRepository;
+  final BannerRepository _bannerRepository;
 
   List<ProviderModel> _nearbyProviders = [];
+  List<BannerModel> _banners = [];
   Map<String, double> _providerDistances = {}; // Cache distance km
   bool _isLoading = false;
   String? _errorMessage;
   Position? _currentPosition;
 
-  HomeViewModel({required ProviderRepository providerRepository})
-      : _providerRepository = providerRepository {
+  HomeViewModel({
+    required ProviderRepository providerRepository,
+    required BannerRepository bannerRepository,
+  })  : _providerRepository = providerRepository,
+        _bannerRepository = bannerRepository {
     _init();
   }
 
   List<ProviderModel> get nearbyProviders => _nearbyProviders;
+  List<BannerModel> get banners => _banners;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -32,9 +40,11 @@ class HomeViewModel extends ChangeNotifier {
   Future<void> _init() async {
     _setLoading(true);
     try {
-      // 1. Get current location
-      // Note: In real app, we should check permission using PermissionViewModel
-      // Here we assume permission is granted or handle error nicely
+      // 1. Fetch Banners
+      _banners = await _bannerRepository.getActiveBanners();
+      notifyListeners(); // Notify UI as soon as banners are ready
+
+      // 2. Get current location
       try {
         _currentPosition = await Geolocator.getCurrentPosition(
             desiredAccuracy: LocationAccuracy.high);
@@ -54,10 +64,10 @@ class HomeViewModel extends ChangeNotifier {
             headingAccuracy: 0);
       }
 
-      // 2. Fetch all providers
+      // 3. Fetch all providers
       final allProviders = await _providerRepository.getProviders();
 
-      // 3. Filter and Sort by Distance using DistanceService
+      // 4. Filter and Sort by Distance using DistanceService
       if (_currentPosition != null) {
         final results = DistanceService.findNearestItemsWithDistance(
           originLat: _currentPosition!.latitude,

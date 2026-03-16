@@ -71,8 +71,9 @@ const useProviderData = () => {
                 const user = usersMap[req.userId] || {};
 
                 return {
-                    id: req.userId, // QUAN TRỌNG: Sử dụng userId làm ID chính để thao tác (Duyệt/Từ chối updates vào User)
-                    requestId: req.id, // Lưu lại ID của request nếu cần
+                    id: req.id, // Sử dụng requestId làm ID chính để UI phân biệt các đơn khác nhau
+                    userId: req.userId,
+                    requestId: req.id,
 
                     // Ưu tiên lấy tên từ User profile, sau đó đến request
                     full_name: user.full_name || user.displayName || user.name || req.name || req.full_name || 'Chưa cập nhật',
@@ -94,8 +95,8 @@ const useProviderData = () => {
                     requestedServices: Array.isArray(req.services) ? req.services : [],
 
                     // Merge các trường khác
-                    ...req,
-                    ...user, // Merge user data vào (nhưng các trường trên đã handle priority)
+                    ...user, // Merge user data trước
+                    ...req,  // Merge request data sau để ưu tiên status của request
                 };
             });
 
@@ -108,14 +109,12 @@ const useProviderData = () => {
 
             // Filter only actual pending requests
             const actualPending = normalizedRequests.filter(req => {
-                const isVerified = req.isVerified === true || req.verificationStatus === 'verified';
-                const isRejected = req.verificationStatus === 'rejected' || req.status === 'rejected';
-                return !isVerified && !isRejected;
+                return req.status === 'pending';
             });
 
             // Filter rejected requests (from partner_requests)
             const rejectedReqs = normalizedRequests.filter(req => {
-                return req.verificationStatus === 'rejected' || req.status === 'rejected';
+                return req.status === 'rejected';
             });
 
             setPendingRequests(actualPending);

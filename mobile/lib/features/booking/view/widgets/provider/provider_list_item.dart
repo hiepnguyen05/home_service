@@ -10,6 +10,7 @@ class ProviderListItem extends StatelessWidget {
   final String priceUnit; // Đơn vị giá: giờ, lần, m²...
   final VoidCallback onTap;
   final VoidCallback onChat;
+  final VoidCallback onViewDetail;
 
   const ProviderListItem({
     super.key,
@@ -20,6 +21,7 @@ class ProviderListItem extends StatelessWidget {
     this.priceUnit = 'lần', // Default
     required this.onTap,
     required this.onChat,
+    required this.onViewDetail,
   });
 
   @override
@@ -28,11 +30,11 @@ class ProviderListItem extends StatelessWidget {
     String formattedPrice = "${(provider.price / 1000).toStringAsFixed(0)}k";
 
     return InkWell(
-      onTap: onTap,
+      onTap: onViewDetail,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.all(12), // Tối ưu padding
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -51,11 +53,11 @@ class ProviderListItem extends StatelessWidget {
           children: [
             // AVATAR
             Container(
-              width: 56,
-              height: 56,
+              width: 50, // Giảm từ 56 xuống 50
+              height: 50,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.grey, // Background color placeholder
+                color: Colors.grey,
               ),
               child: ClipOval(
                 child: (provider.avatarUrl.isNotEmpty &&
@@ -71,9 +73,9 @@ class ProviderListItem extends StatelessWidget {
                     : const Icon(Icons.person, color: Colors.white),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12), // Giảm khoảng cách
 
-            // INFO
+            // INFO - Sử dụng Expanded để tự động co dãn
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,7 +91,7 @@ class ProviderListItem extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  // Row 1: Khoảng cách & Thời gian
+                  // Row 1: Khoảng cách & Thời gian - Sử dụng Wrap để tự động xuống dòng
                   Wrap(
                     spacing: 4,
                     runSpacing: 2,
@@ -117,12 +119,13 @@ class ProviderListItem extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
 
-                  // Row 2: Đánh giá & Giá tiền
-                  Row(
+                  // Row 2: Đánh giá & Giá tiền - Sử dụng Wrap thay vì Row
+                  Wrap(
+                    spacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       // Rating
                       const Icon(Icons.star, size: 16, color: Colors.amber),
-                      const SizedBox(width: 4),
                       Text(
                         "${provider.rating}",
                         style: const TextStyle(
@@ -134,7 +137,7 @@ class ProviderListItem extends StatelessWidget {
 
                       // Divider
                       Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
                         width: 1,
                         height: 12,
                         color: Colors.grey[300],
@@ -162,48 +165,62 @@ class ProviderListItem extends StatelessWidget {
               ),
             ),
 
-            // ACTIONS
+            const SizedBox(width: 8),
+
+            // ACTIONS - Cố định kích thước để tránh tràn
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Chat Button
-                IconButton(
-                  onPressed: onChat,
-                  icon: const Icon(Icons.chat_bubble_outline),
-                  color: AppColors.primary,
-                  style: IconButton.styleFrom(
-                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                // Chat Button - Cố định kích thước
+                SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: IconButton(
+                    onPressed: onChat,
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(Icons.chat_bubble_outline, size: 20),
+                    color: AppColors.primary,
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.primary.withOpacity(0.1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
 
                 // Select Button
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  height: 36,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.primary
-                        : AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (isSelected) ...[
-                        const Icon(Icons.check, color: Colors.white, size: 18),
-                        const SizedBox(width: 4),
-                      ],
-                      Text(
-                        isSelected ? "Đã chọn" : "Chọn",
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                InkWell(
+                  onTap: onTap,
+                  borderRadius: BorderRadius.circular(8),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    height: 36,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primary
+                          : AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (isSelected) ...[
+                          const Icon(Icons.check, color: Colors.white, size: 18),
+                          const SizedBox(width: 4),
+                        ],
+                        Text(
+                          isSelected ? "Đã chọn" : "Chọn",
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],

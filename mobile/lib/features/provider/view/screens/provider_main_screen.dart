@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../screens/provider_dashboard_screen.dart';
-import '../screens/provider_jobs_screen.dart';
-import '../screens/provider_schedule_screen.dart';
+import '../screens/provider_history_screen.dart';
+import '../screens/provider_income_screen.dart';
 import '../../../profile/view/screens/profile_screen.dart';
+import 'package:provider/provider.dart';
+import '../../viewmodel/provider_viewmodel.dart';
+import '../../../../core/widgets/provider_bottom_nav.dart';
 
 class ProviderMainScreen extends StatefulWidget {
   const ProviderMainScreen({super.key});
@@ -14,63 +17,45 @@ class ProviderMainScreen extends StatefulWidget {
 
 class _ProviderMainScreenState extends State<ProviderMainScreen> {
   int _currentIndex = 0;
+  late ProviderViewModel _viewModel;
+
+  @override
+  void initState() {
+    super.initState();
+    _viewModel = ProviderViewModel();
+    _viewModel.loadData();
+    _viewModel.startListeningToJobRequests();
+  }
+
+  @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
+  }
 
   final List<Widget> _screens = [
     const ProviderDashboardScreen(),
-    const ProviderJobsScreen(),
-    const ProviderScheduleScreen(),
+    const ProviderHistoryScreen(),
+    const ProviderIncomeScreen(),
     const ProfileScreen(isProviderMode: true),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _screens[_currentIndex],
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          border: Border(
-            top: BorderSide(
-              color: AppColors.borderLight,
-              width: 0.5,
-            ),
-          ),
+    return ChangeNotifierProvider.value(
+      value: _viewModel,
+      child: Scaffold(
+        body: IndexedStack(
+          index: _currentIndex,
+          children: _screens,
         ),
-        child: BottomNavigationBar(
+        bottomNavigationBar: ProviderBottomNav(
           currentIndex: _currentIndex,
           onTap: (index) {
             setState(() {
               _currentIndex = index;
             });
           },
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: AppColors.white,
-          selectedItemColor: AppColors.primary,
-          unselectedItemColor: AppColors.textSecondary,
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard_outlined),
-              activeIcon: Icon(Icons.dashboard),
-              label: 'Dashboard',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.work_outline),
-              activeIcon: Icon(Icons.work),
-              label: 'Việc mới',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today_outlined),
-              activeIcon: Icon(Icons.calendar_today),
-              label: 'Lịch',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Tài khoản',
-            ),
-          ],
         ),
       ),
     );

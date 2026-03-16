@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../../../core/services/notification_service.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/models/user_model.dart';
 
@@ -36,6 +37,9 @@ class AuthViewModel extends ChangeNotifier {
       if (userModel != null) {
         _currentUser = userModel;
         print('Đã khôi phục session đăng nhập cho: ${userModel.fullName}');
+
+        // Bắt đầu lắng nghe thông báo cho user này
+        NotificationService.observeNotifications(userModel.uid);
       } else {
         print('Không tìm thấy thông tin user hoặc chưa đăng nhập');
       }
@@ -74,6 +78,9 @@ class AuthViewModel extends ChangeNotifier {
       print('Đang đăng nhập với email: $email');
       final userModel = await _authRepository.login(email, password);
       _currentUser = userModel;
+
+      // Bắt đầu lắng nghe thông báo
+      NotificationService.observeNotifications(userModel.uid);
 
       _setLoading(false);
       print('Đăng nhập thành công: ${userModel.fullName}');
@@ -117,6 +124,9 @@ class AuthViewModel extends ChangeNotifier {
       );
 
       _currentUser = userModel;
+
+      // Bắt đầu lắng nghe thông báo
+      NotificationService.observeNotifications(userModel.uid);
 
       _setLoading(false);
       print('Đăng ký thành công: ${userModel.fullName}');

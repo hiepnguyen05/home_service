@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:provider/provider.dart';
+import 'package:mobile/features/chat/viewmodel/chat_list_viewmodel.dart';
+import 'package:mobile/features/chat/view/screens/chat_list_screen.dart';
 
 class HomeAppBar extends StatelessWidget {
   final String userName;
   final String? avatarUrl;
-  final VoidCallback onNotificationTap;
 
   const HomeAppBar({
     super.key,
     required this.userName,
     this.avatarUrl,
-    required this.onNotificationTap,
   });
 
   @override
@@ -40,7 +41,7 @@ class HomeAppBar extends StatelessWidget {
           // Greeting
           Expanded(
             child: Text(
-              'Xin chào, $userName!',
+              'Chào bạn, $userName!', // Đổi text để kiểm tra cập nhật
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -49,14 +50,56 @@ class HomeAppBar extends StatelessWidget {
             ),
           ),
 
-          // Notification Icon
-          IconButton(
-            onPressed: onNotificationTap,
-            icon: const Icon(
-              Icons.notifications_none,
-              size: 28,
-              color: AppColors.textSecondary,
-            ),
+          // Chat Icon with Badge (thay thế biểu tượng chuông thông báo)
+          Consumer<ChatListViewModel?>(
+            builder: (context, vm, child) {
+              final unreadCount = vm?.totalUnreadCount ?? 0;
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ChatListScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.mode_comment, // Đổi sang icon mode_comment theo ý bạn
+                      size: 24,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          unreadCount > 99 ? '99+' : '$unreadCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),
