@@ -221,6 +221,7 @@ class _BookingProviderScreenState extends State<BookingProviderScreen> {
                   userLng: widget.userLng,
                   note: widget.note,
                   priceUnit: _viewModel.priceUnit, // Pass loaded price unit
+                  basePrice: selectedProvider.price, // Pass provider price
                 ),
               ),
             );

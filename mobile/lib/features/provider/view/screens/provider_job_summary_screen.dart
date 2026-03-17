@@ -73,36 +73,43 @@ class _ProviderJobSummaryScreenState extends State<ProviderJobSummaryScreen> {
     final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
     final dateFormat = DateFormat('dd/MM/yyyy, HH:mm');
     
-    // Logic tính toán tiền dựa trên đơn vị tính
+    // 1. Lấy chi phí phát sinh và trạng thái (để biết đã cộng vào totalPrice chưa)
+    final double extraCost = widget.booking.extraCostAmount ?? 0.0;
+    final bool isExtraCostApproved = widget.booking.extraCostStatus == 'approved';
+    
+    // 2. Xác định basePrice thực tế (giá trị trước khi cộng extra cost)
+    // Firestore lưu totalPrice là giá đã bao gồm extra cost nếu đã approved.
+    double actualBasePrice = widget.booking.totalPrice;
+    if (isExtraCostApproved) {
+      actualBasePrice = widget.booking.totalPrice - extraCost;
+    }
+    
+    // 3. Logic tính toán tiền dựa trên đơn vị tính
     final bool isHourly = widget.booking.priceUnit == 'giờ';
     final int totalSeconds = widget.booking.totalWorkingSeconds + widget.finalSessionSeconds;
-    final double totalMinutes = totalSeconds / 60.0;
     
-    debugPrint("--- DEBUG: Summary Screen Calculation ---");
-    debugPrint("Booking priceUnit: ${widget.booking.priceUnit}");
-    debugPrint("Booking totalWorkingSeconds: ${widget.booking.totalWorkingSeconds}");
-    debugPrint("Passed finalSessionSeconds: ${widget.finalSessionSeconds}");
-    debugPrint("Calculated totalMinutes: $totalMinutes");
-
-    double basePrice = widget.booking.totalPrice;
+    double calculatedBasePrice = actualBasePrice;
     double hourlyRate = 0;
     
     if (isHourly) {
        // hourlyRate = giá gốc / số lượng (giờ) gốc khách đặt
-       hourlyRate = widget.booking.totalPrice / (widget.booking.quantity > 0 ? widget.booking.quantity : 1);
+       hourlyRate = actualBasePrice / (widget.booking.quantity > 0 ? widget.booking.quantity : 1);
        debugPrint("--- DEBUG: Hourly Calculation ---");
        debugPrint("Hourly Rate: $hourlyRate");
        
        if (totalSeconds > 0) {
-         // basePrice mới = đơn giá * (tổng phút / 60)
-         basePrice = hourlyRate * (totalSeconds / 3600.0);
-         debugPrint("New calculated basePrice: $basePrice");
+         // calculatedBasePrice mới = đơn giá * (tổng giây / 3600)
+         calculatedBasePrice = hourlyRate * (totalSeconds / 3600.0);
+         debugPrint("New calculated basePrice: $calculatedBasePrice");
        }
+    } else {
+      // Đối với các đơn vị khác (lần, bộ, m2...), giá là cố định theo đơn hàng gốc
+      debugPrint("--- DEBUG: Fixed Price Calculation ---");
+      calculatedBasePrice = actualBasePrice;
     }
 
-    // Chi phí phát sinh (nếu khách đã đồng ý)
-    final double extraCost = widget.booking.extraCostAmount ?? 0.0;
-    final totalIncome = basePrice + extraCost;
+    // 4. Tổng cộng cuối cùng
+    final totalIncome = calculatedBasePrice + extraCost;
 
     final isCOD = widget.booking.paymentMethod == BookingPaymentMethod.COD;
     final buttonText = isCOD ? "Xác nhận thu tiền và hoàn thành" : "Xác nhận và Đóng";
@@ -165,7 +172,7 @@ class _ProviderJobSummaryScreenState extends State<ProviderJobSummaryScreen> {
                   label: isHourly 
                       ? "Giá (${currencyFormat.format(hourlyRate)} \u00d7 ${(totalSeconds / 3600.0).toStringAsFixed(1)}h):" 
                       : "Giá cơ bản:", 
-                  value: currencyFormat.format(basePrice),
+                  value: currencyFormat.format(calculatedBasePrice),
                   isBoldValue: isHourly,
                 ),
                 SummaryDetailRow(

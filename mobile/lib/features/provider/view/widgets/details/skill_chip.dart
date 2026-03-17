@@ -8,7 +8,6 @@ class SkillChip extends StatelessWidget {
   final bool isEditing;
   final bool isActive;
   final VoidCallback? onDelete;
-  final VoidCallback? onEdit;
   final VoidCallback? onToggleStatus;
 
   const SkillChip({
@@ -19,31 +18,48 @@ class SkillChip extends StatelessWidget {
     this.isEditing = false,
     this.isActive = true,
     this.onDelete,
-    this.onEdit,
     this.onToggleStatus,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: isActive ? Colors.grey[100] : Colors.grey[200],
-        borderRadius: BorderRadius.circular(8),
+        color: isActive ? AppColors.white : Colors.grey[50],
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isActive ? Colors.grey[200]! : Colors.grey[300]!,
-          width: isActive ? 1 : 1.5,
+          color: isActive 
+              ? AppColors.primary.withOpacity(0.2) 
+              : Colors.grey[300]!,
+          width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            color: isActive ? AppColors.primary : Colors.grey[500],
-            size: 16,
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isActive 
+                  ? AppColors.primary.withOpacity(0.1) 
+                  : Colors.grey[200],
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: isActive ? AppColors.primary : Colors.grey[500],
+              size: 20,
+            ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 12),
           Flexible(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,8 +68,8 @@ class SkillChip extends StatelessWidget {
                 Text(
                   label + (isActive ? '' : ' (Tạm ngưng)'),
                   style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
                     color: isActive ? AppColors.textPrimary : Colors.grey[500],
                     decoration: isActive ? null : TextDecoration.lineThrough,
                   ),
@@ -64,50 +80,51 @@ class SkillChip extends StatelessWidget {
                   Text(
                     price!,
                     style: TextStyle(
-                      fontSize: 12,
-                      color: isActive ? Colors.grey[600] : Colors.grey[400],
-                      fontWeight: FontWeight.w400,
+                      fontSize: 13,
+                      color: isActive ? AppColors.textSecondary : Colors.grey[400],
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.2,
                     ),
                   ),
               ],
             ),
           ),
           if (isEditing) ...[
-            const SizedBox(width: 8),
-            const SizedBox(
-              height: 20,
-              child: VerticalDivider(width: 1, thickness: 1, color: Colors.grey),
-            ),
-            const SizedBox(width: 4),
-            // Nút Tạm ngưng/Bật lại
-            IconButton(
-              onPressed: onToggleStatus,
-              icon: Icon(
-                isActive ? Icons.pause_circle_outline : Icons.play_circle_outline,
-                size: 18,
-                color: isActive ? Colors.orange : Colors.green,
+            const SizedBox(width: 16),
+            // Nút Tạm ngưng/Bật lại - Styled as small pill
+            InkWell(
+              onTap: onToggleStatus,
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: (isActive ? Colors.orange : Colors.green).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isActive ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                  size: 18,
+                  color: isActive ? Colors.orange : Colors.green,
+                ),
               ),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              tooltip: isActive ? 'Tạm ngưng' : 'Hoạt động lại',
             ),
             const SizedBox(width: 8),
-            // Nút Chỉnh sửa giá
-            IconButton(
-              onPressed: onEdit,
-              icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.blue),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              tooltip: 'Sửa giá',
-            ),
-            const SizedBox(width: 8),
-            // Nút Xóa
-            IconButton(
-              onPressed: onDelete,
-              icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              tooltip: 'Xóa dịch vụ',
+            // Nút Xóa - Styled as small pill
+            InkWell(
+              onTap: onDelete,
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.delete_outline_rounded,
+                  size: 18,
+                  color: Colors.red,
+                ),
+              ),
             ),
           ],
         ],

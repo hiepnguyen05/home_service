@@ -11,6 +11,10 @@ import 'package:mobile/features/booking/view/screens/booking_detail_screen.dart'
 import 'package:mobile/features/provider/data/repositories/provider_repository.dart';
 import 'package:mobile/features/services/data/models/service_model.dart';
 import 'package:mobile/features/services/data/repositories/service_repository.dart';
+import 'package:mobile/features/booking/data/repositories/review_repository.dart';
+import 'package:mobile/features/booking/view/screens/rating_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:mobile/features/booking/viewmodel/review_viewmodel.dart';
 
 class BookingHistoryScreen extends StatefulWidget {
   const BookingHistoryScreen({super.key});
@@ -23,6 +27,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
   final BookingRepository _bookingRepository = BookingRepository();
   final ProviderRepository _providerRepository = ProviderRepository();
   final ServiceRepository _serviceRepository = ServiceRepository();
+  final ReviewRepository _reviewRepository = ReviewRepository();
   int _currentTab = 0;
   bool _isLoading = true;
   String? _error;
@@ -31,6 +36,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
   List<BookingModel> _completed = [];
   List<BookingModel> _cancelled = [];
   Map<String, ServiceModel> _serviceMap = {};
+  Map<String, bool> _reviewedMap = {};
 
   @override
   void initState() {
@@ -82,11 +88,18 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
         }
       }));
 
+      // Check review status for completed bookings
+      final Map<String, bool> reviewedMap = {};
+      await Future.wait(completed.map((b) async {
+        reviewedMap[b.id] = await _reviewRepository.hasReviewed(b.id);
+      }));
+
       setState(() {
         _ongoing = ongoing;
         _completed = completed;
         _cancelled = cancelled;
         _serviceMap = serviceMap;
+        _reviewedMap = reviewedMap;
         _isLoading = false;
       });
     } catch (e) {
@@ -161,6 +174,45 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Lỗi mở chi tiết đơn hàng: $e')),
+      );
+    }
+  }
+
+  Future<void> _openRating(BookingModel booking) async {
+    try {
+      final provider = await _providerRepository.getProviderById(booking.providerId);
+      if (!mounted) return;
+
+      if (provider == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không tìm thấy thông tin thợ để đánh giá')),
+        );
+        return;
+      }
+
+      final serviceName = _serviceMap[booking.serviceId]?.name ?? 'Dịch vụ đã đặt';
+
+      // Clear ReviewViewModel state before opening
+      context.read<ReviewViewModel>().clear();
+
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (ctx) => RatingScreen(
+            booking: booking,
+            provider: provider,
+            serviceName: serviceName,
+          ),
+        ),
+      );
+
+      if (result == true) {
+        _loadHistory(); // Refresh to update "Đánh giá" button state
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi: $e')),
       );
     }
   }
@@ -289,6 +341,8 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
               _serviceMap[booking.serviceId]?.name ?? 'Dịch vụ đã đặt',
           serviceIconName: _serviceMap[booking.serviceId]?.iconName,
           onTap: () => _openDetail(booking),
+          onRate: () => _openRating(booking),
+          isReviewed: _reviewedMap[booking.id] ?? false,
         );
       },
     );

@@ -97,7 +97,7 @@ class BookingViewModel extends ChangeNotifier {
     try {
       // 1. Load service data để lấy priceUnit
       if (serviceId != null) {
-        await _loadServiceData(serviceId);
+        await loadServiceMetadata(serviceId);
       }
       // 2. Load providers
       List<ProviderModel> allProviders;
@@ -136,8 +136,8 @@ class BookingViewModel extends ChangeNotifier {
     }
   }
 
-  /// Load service data để lấy priceUnit
-  Future<void> _loadServiceData(String serviceId) async {
+  /// Load service data (unit, name) from global repo to ensure consistency
+  Future<void> loadServiceMetadata(String serviceId) async {
     try {
       final service = await _serviceRepository.getServiceById(serviceId);
       _priceUnit = service.priceUnit;
@@ -147,8 +147,9 @@ class BookingViewModel extends ChangeNotifier {
       if (_priceUnit == 'giờ') {
         _paymentMethod = PaymentMethod.cash;
       }
+      notifyListeners();
     } catch (e) {
-      print("⚠️ [VM] Không lấy được service data: $e");
+      print("⚠️ [VM] Không lấy được service metadata: $e");
     }
   }
 

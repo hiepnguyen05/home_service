@@ -6,9 +6,25 @@ import '../../viewmodel/partner_viewmodel.dart';
 import '../../../services/data/models/service_model.dart';
 import '../widgets/service_item_row.dart';
 import '../widgets/partner_progress_bar.dart';
+import 'package:mobile/features/partner/data/models/partner_request_model.dart';
 
 class ServicePricingScreen extends StatefulWidget {
-  const ServicePricingScreen({super.key});
+  final List<PartnerServiceRequest>? initialServices;
+  final bool isUpdateMode;
+  final Function(List<PartnerServiceRequest>)? onSave;
+  final String? providerId;
+  final String? providerName;
+  final String? providerPhone;
+
+  const ServicePricingScreen({
+    super.key,
+    this.initialServices,
+    this.isUpdateMode = false,
+    this.onSave,
+    this.providerId,
+    this.providerName,
+    this.providerPhone,
+  });
 
   @override
   State<ServicePricingScreen> createState() => _ServicePricingScreenState();
@@ -37,8 +53,11 @@ class _ServicePricingScreenState extends State<ServicePricingScreen> {
     super.initState();
     // Fetch services once
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<PartnerViewModel>(context, listen: false)
-          .fetchActiveServices();
+      final viewModel = Provider.of<PartnerViewModel>(context, listen: false);
+      viewModel.fetchActiveServices();
+      if (widget.initialServices != null) {
+        viewModel.initializePricing(widget.initialServices!);
+      }
     });
   }
 
@@ -116,38 +135,21 @@ class _ServicePricingScreenState extends State<ServicePricingScreen> {
     );
   }
 
-  List<ServiceModel> _getFilteredServices(List<ServiceModel> services) {
-    if (_searchQuery.isEmpty) {
-      return services;
-    }
-    return services
-        .where((service) =>
-            service.name.toLowerCase().contains(_searchQuery) ||
-            service.description.toLowerCase().contains(_searchQuery))
-        .toList();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<PartnerViewModel>(
       builder: (context, viewModel, child) {
-        final filteredServices = _getFilteredServices(viewModel.activeServices);
-
-        // Listen for submission errors
-        if (viewModel.errorMessage != null && !viewModel.isSubmitting) {
-          // Use Future.microtask to avoid build-time setState or snackbar
-          Future.microtask(() {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Lỗi: ${viewModel.errorMessage}')),
-            );
-            // IMPORTANT: Ideally clear error after showing
-          });
-        }
+        final filteredServices = viewModel.activeServices.where((s) {
+          final matchesSearch =
+              s.name.toLowerCase().contains(_searchQuery.toLowerCase());
+          if (widget.isUpdateMode) return matchesSearch;
+          return viewModel.selectedServiceIds.contains(s.id) && matchesSearch;
+        }).toList();
 
         return Scaffold(
-          backgroundColor: Colors.grey[50], // background-light
+          backgroundColor: Colors.grey[50],
           appBar: AppBar(
-            backgroundColor: Colors.white.withOpacity(0.8),
+            backgroundColor: Colors.white,
             elevation: 0,
             centerTitle: true,
             leading: IconButton(
@@ -155,137 +157,216 @@ class _ServicePricingScreenState extends State<ServicePricingScreen> {
                   color: AppColors.textPrimary),
               onPressed: () => Navigator.pop(context),
             ),
-            title: const Text(
-              'Thiết lập dịch vụ và giá',
-              style: TextStyle(
+            title: Text(
+              widget.isUpdateMode
+                  ? 'Cập nhật Dịch vụ & Giá'
+                  : 'Thiết lập dịch vụ và giá',
+              style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
-          body: Column(
+          body: Stack(
             children: [
-              // Step 3 Progress Bar
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                child: PartnerProgressBar(currentStep: 3),
-              ),
-
-              // Header Description
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Text(
-                  'Chọn dịch vụ bạn cung cấp và đặt giá mong muốn cho mỗi dịch vụ.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
-
-              // Search Bar
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.02),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: TextField(
-                    onChanged: (value) {
-                      setState(() {
-                        _searchQuery = value.toLowerCase();
-                      });
-                    },
-                    decoration: const InputDecoration(
-                      hintText: 'Tìm kiếm dịch vụ...',
-                      prefixIcon:
-                          Icon(Icons.search, color: AppColors.textSecondary),
-                      border: InputBorder.none,
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              Column(
+                children: [
+                  if (!widget.isUpdateMode)
+                    const Padding(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                      child: PartnerProgressBar(currentStep: 3),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Bảng giá dịch vụ',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          widget.isUpdateMode
+                              ? 'Cập nhật dịch vụ bạn cung cấp và điều chỉnh giá tiền phù hợp với thị trường.'
+                              : 'Cài đặt đơn giá cho các dịch vụ bạn đã chọn. Đơn giá này sẽ là căn cứ để khách hàng đặt lịch.',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppColors.textSecondary,
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ),
-
-              // Main Content Area
-              Expanded(
-                child: viewModel.isLoadingServices
-                    ? const Center(child: CircularProgressIndicator())
-                    : filteredServices.isEmpty
-                        ? const Center(
-                            child: Text('Không tìm thấy dịch vụ phù hợp'))
-                        : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                            itemCount: filteredServices.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 12),
-                            itemBuilder: (context, index) {
-                              final service = filteredServices[index];
-                              final isChecked = viewModel.selectedServiceIds
-                                  .contains(service.id);
-
-                              // We use a controller that updates when model updates, carefully
-                              // In a real optimized scenario, we might want individual items to be widgets
-                              // that listen to specific parts or just rebuild.
-                              // For now, rebuilding list is fine.
-
-                              final currentPrice =
-                                  viewModel.servicePrices[service.id] ?? '';
-
-                              // Note: Recreating controller every build can be annoying for cursor position.
-                              // A robust solution uses a separate widget for the input or keeps controllers in state.
-                              // For simplicity here, we'll try to keep cursor at end if we use key or similar,
-                              // OR just let the controller be created and hope Flutter diffing keeps focus if key is stable.
-                              // Using unique key for TextField might help preserve focus but not cursor.
-                              // Best simple way: Use a compiled formatting function in onChanged only, and here
-                              // only set text if it differs significantly, OR use a custom StatefulWidget for the row.
-
-                              return ServiceItemRow(
-                                service: service,
-                                isChecked: isChecked,
-                                price: currentPrice,
-                                onChecked: (val) =>
-                                    viewModel.toggleServiceSelection(
-                                        service.id, val ?? false),
-                                onPriceChanged: (val) =>
-                                    viewModel.updateServicePrice(
-                                        service.id,
-                                        val
-                                            .replaceAll('.', '')
-                                            .replaceAll(',', '')),
-                                priceUnit: service.priceUnit,
-                                onInfoTap: () => _showPricingSuggestionDialog(
-                                    context, service, viewModel),
-                              );
-                            },
+                  const SizedBox(height: 24),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: TextField(
+                        onChanged: (value) =>
+                            setState(() => _searchQuery = value),
+                        decoration: InputDecoration(
+                          hintText: widget.isUpdateMode
+                              ? 'Tìm kiếm dịch vụ...'
+                              : 'Tìm kiếm dịch vụ đã chọn...',
+                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
                           ),
+                          child: Text(
+                            '${viewModel.selectedServiceIds.length} dịch vụ đã chọn',
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: viewModel.isLoadingServices
+                        ? const Center(child: CircularProgressIndicator())
+                        : filteredServices.isEmpty
+                            ? Center(
+                                child: Text(
+                                  _searchQuery.isEmpty
+                                      ? (widget.isUpdateMode
+                                          ? 'Không có dịch vụ nào khả dụng'
+                                          : 'Bạn chưa chọn dịch vụ nào ở bước trước')
+                                      : 'Không tìm thấy dịch vụ tương ứng',
+                                  style: TextStyle(color: Colors.grey[500]),
+                                ),
+                              )
+                            : ListView.separated(
+                                padding:
+                                    const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                                itemCount: filteredServices.length,
+                                separatorBuilder: (context, index) =>
+                                    const SizedBox(height: 16),
+                                itemBuilder: (context, index) {
+                                  final service = filteredServices[index];
+                                  return ServiceItemRow(
+                                    service: service,
+                                    isChecked: viewModel.selectedServiceIds.contains(service.id),
+                                    price: viewModel.servicePrices[service.id] ?? '',
+                                    onChecked: (val) => viewModel.toggleServiceSelection(service.id, val ?? false),
+                                    onPriceChanged: (value) => viewModel
+                                        .updateServicePrice(service.id, value.replaceAll('.', '').replaceAll(',', '')),
+                                    priceUnit: service.priceUnit,
+                                    onInfoTap: () =>
+                                        _showPricingSuggestionDialog(
+                                            context, service, viewModel),
+                                  );
+                                },
+                              ),
+                  ),
+                ],
               ),
+              if (viewModel.isSubmitting)
+                Container(
+                  color: Colors.black26,
+                  child: const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
             ],
           ),
           bottomNavigationBar: Container(
-            color: Colors.white.withOpacity(0.9),
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.only(
+              left: 24,
+              right: 24,
+              top: 16,
+              bottom: MediaQuery.of(context).padding.bottom + 16,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -5),
+                ),
+              ],
+            ),
             child: SizedBox(
               height: 54,
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _canProceed(viewModel)
-                    ? () {
-                        Navigator.pushNamed(context, AppRoutes.bioExperience);
+                onPressed: _canProceed(viewModel) && !viewModel.isSubmitting
+                    ? () async {
+                        if (widget.isUpdateMode) {
+                          final selectedServices =
+                              viewModel.selectedServiceIds.map((id) {
+                            final service = viewModel.activeServices
+                                .firstWhere((s) => s.id == id);
+                            return PartnerServiceRequest(
+                              serviceId: id,
+                              serviceName: service.name,
+                              price: viewModel.servicePrices[id] ?? '0',
+                              iconName: service.iconName,
+                              priceUnit: service.priceUnit,
+                            );
+                          }).toList();
+
+                          if (widget.providerId != null) {
+                            final success = await viewModel.submitUpdate(
+                              userId: widget.providerId!,
+                              fullName: widget.providerName ?? 'Thợ',
+                              phoneNumber: widget.providerPhone ?? '',
+                              services: selectedServices,
+                            );
+
+                            if (success && mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text(
+                                        'Yêu cầu cập nhật dịch vụ đã được gửi và đang chờ duyệt.')),
+                              );
+                              widget.onSave?.call(selectedServices);
+                              Navigator.pop(context);
+                            } else if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text(
+                                        'Lỗi: ${viewModel.errorMessage ?? "Không thể gửi yêu cầu"}')),
+                              );
+                            }
+                          } else {
+                            widget.onSave?.call(selectedServices);
+                            Navigator.pop(context);
+                          }
+                        } else {
+                          Navigator.pushNamed(context, AppRoutes.bioExperience);
+                        }
                       }
                     : null,
                 style: ElevatedButton.styleFrom(
@@ -299,9 +380,9 @@ class _ServicePricingScreenState extends State<ServicePricingScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text(
-                  'Tiếp tục',
-                  style: TextStyle(
+                child: Text(
+                  widget.isUpdateMode ? 'Cập nhật ngay' : 'Tiếp tục',
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),

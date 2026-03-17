@@ -1,18 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/core/constants/app_colors.dart';
+import 'package:mobile/features/booking/data/models/review_model.dart';
+import 'package:mobile/features/booking/data/repositories/review_repository.dart';
+import 'package:mobile/features/booking/view/widgets/rating/review_item_widget.dart';
 
-class LatestReviewTeaser extends StatelessWidget {
+class LatestReviewTeaser extends StatefulWidget {
   final int reviewCount;
+  final String providerId;
   final VoidCallback? onSeeAll;
 
   const LatestReviewTeaser({
     super.key,
     required this.reviewCount,
+    required this.providerId,
     this.onSeeAll,
   });
 
   @override
+  State<LatestReviewTeaser> createState() => _LatestReviewTeaserState();
+}
+
+class _LatestReviewTeaserState extends State<LatestReviewTeaser> {
+  final ReviewRepository _reviewRepository = ReviewRepository();
+  List<ReviewModel>? _latestReviews;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLatestReviews();
+  }
+
+  Future<void> _loadLatestReviews() async {
+    if (widget.reviewCount == 0 || widget.providerId.isEmpty) {
+      setState(() => _isLoading = false);
+      return;
+    }
+    try {
+      final reviews = await _reviewRepository.getReviewsByProvider(widget.providerId);
+      if (mounted) {
+        setState(() {
+          _latestReviews = reviews.take(5).toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const SizedBox(
+        height: 100,
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -21,62 +66,14 @@ class LatestReviewTeaser extends StatelessWidget {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        if (reviewCount > 0)
+        if (widget.reviewCount > 0 && _latestReviews != null && _latestReviews!.isNotEmpty)
           Column(
             children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFF1F5F9)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundColor: Colors.grey[200],
-                          backgroundImage: const NetworkImage("https://i.pravatar.cc/100?u=tranb"),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Trần B.',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              Text(
-                                '2 ngày trước',
-                                style: TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Row(
-                          children: List.generate(
-                            5,
-                            (index) => const Icon(Icons.star, color: Colors.amber, size: 16),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Anh làm việc rất nhanh nhẹn, bắt bệnh chuẩn. Giá cả hợp lý so với mặt bằng chung. Sẽ ủng hộ lần sau.',
-                      style: TextStyle(color: Colors.grey[700], fontSize: 14),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
+              ..._latestReviews!.map((review) => ReviewItemWidget(review: review)),
+              const SizedBox(height: 4),
               Center(
                 child: TextButton(
-                  onPressed: onSeeAll,
+                  onPressed: widget.onSeeAll,
                   child: const Text(
                     'Xem tất cả đánh giá',
                     style: TextStyle(

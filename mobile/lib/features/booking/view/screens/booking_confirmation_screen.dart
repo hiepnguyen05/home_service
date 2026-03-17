@@ -31,6 +31,7 @@ class BookingConfirmationScreen extends StatefulWidget {
   final String address;
   final String? note;
   final String priceUnit; // NEW
+  final double basePrice; // NEW
 
   const BookingConfirmationScreen({
     super.key,
@@ -43,6 +44,7 @@ class BookingConfirmationScreen extends StatefulWidget {
     required this.userLng,
     required this.address,
     required this.priceUnit, // NEW
+    required this.basePrice, // NEW
     this.note,
   });
 
@@ -62,8 +64,11 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
   void initState() {
     super.initState();
     _bookingViewModel = BookingViewModel();
-    // Set price unit from widget
+    // Set initial unit from widget (for immediate display)
     _bookingViewModel.setPriceUnit(widget.priceUnit);
+    
+    // FORCE LOAD latest metadata from global repo to ensure "đồng bộ" (consistency)
+    _bookingViewModel.loadServiceMetadata(widget.serviceId);
 
     _paymentViewModel = PaymentViewModel();
   }
@@ -74,7 +79,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
 
     // 2. Tạo Booking Request (Booking created with Pending status)
     final totalPrice =
-        _bookingViewModel.calculateTotalPrice(widget.provider.price);
+        _bookingViewModel.calculateTotalPrice(widget.basePrice);
 
     final booking = await _bookingViewModel.createBookingRequest(
       provider: widget.provider,
@@ -403,7 +408,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
               const SizedBox(height: 12),
               Consumer<BookingViewModel>(
                 builder: (context, vm, child) {
-                  final total = vm.calculateTotalPrice(widget.provider.price);
+                  final total = vm.calculateTotalPrice(widget.basePrice);
                   return PriceDetailsSection(
                     servicePrice: total, // Updated to use total
                     platformFee: 0,
@@ -424,7 +429,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         bottomNavigationBar: Consumer2<BookingViewModel, PaymentViewModel>(
           builder: (context, bookingVM, paymentVM, child) {
             final totalPrice =
-                bookingVM.calculateTotalPrice(widget.provider.price);
+                bookingVM.calculateTotalPrice(widget.basePrice);
 
             return ConfirmationBottomBar(
               totalPrice: totalPrice,

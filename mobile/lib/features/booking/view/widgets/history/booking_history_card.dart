@@ -9,6 +9,8 @@ class BookingHistoryCard extends StatelessWidget {
   final String serviceName;
   final String? serviceIconName;
   final VoidCallback onTap;
+  final VoidCallback? onRate;
+  final bool isReviewed;
 
   const BookingHistoryCard({
     super.key,
@@ -16,6 +18,8 @@ class BookingHistoryCard extends StatelessWidget {
     required this.serviceName,
     this.serviceIconName,
     required this.onTap,
+    this.onRate,
+    this.isReviewed = false,
   });
 
   @override
@@ -143,19 +147,20 @@ class BookingHistoryCard extends StatelessWidget {
                 SizedBox(
                   height: 44,
                   child: OutlinedButton(
-                    onPressed: onTap,
+                    onPressed: isReviewed ? null : onRate,
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: const BorderSide(color: AppColors.primary),
+                      foregroundColor: isReviewed ? Colors.grey : AppColors.primary,
+                      side: BorderSide(color: isReviewed ? Colors.grey : AppColors.primary),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'Đánh giá',
+                    child: Text(
+                      isReviewed ? 'Đã đánh giá' : 'Đánh giá',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
+                        color: isReviewed ? Colors.grey : AppColors.primary,
                       ),
                     ),
                   ),

@@ -15,6 +15,8 @@ import '../features/booking/viewmodel/booking_viewmodel.dart';
 import '../features/home/viewmodel/home_viewmodel.dart';
 import '../features/home/data/repositories/banner_repository.dart';
 import '../features/chat/viewmodel/chat_list_viewmodel.dart';
+import '../features/booking/data/repositories/review_repository.dart';
+import '../features/booking/viewmodel/review_viewmodel.dart';
 
 class AppProviders extends StatelessWidget {
   final Widget child;
@@ -32,6 +34,7 @@ class AppProviders extends StatelessWidget {
         Provider(create: (_) => AddressRepository()),
         Provider(create: (_) => ProviderRepository()),
         Provider(create: (_) => BannerRepository()),
+        Provider(create: (_) => ReviewRepository()),
         // ViewModels
         ChangeNotifierProvider(create: (_) => PermissionViewModel()),
         ChangeNotifierProvider(create: (_) => AddressViewModel()),
@@ -95,6 +98,7 @@ class AppProviders extends StatelessWidget {
             return ChatListViewModel(userId: userId);
           },
         ),
+        ChangeNotifierProvider(create: (_) => ReviewViewModel()),
       ],
       child: child,
     );

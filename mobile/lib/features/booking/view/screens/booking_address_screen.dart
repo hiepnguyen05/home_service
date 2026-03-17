@@ -359,6 +359,9 @@ class _BookingAddressScreenState extends State<BookingAddressScreen> {
                           orElse: () => widget.preSelectedProvider!.services!.first,
                         );
 
+                        // Parse price from string
+                        double basePrice = double.tryParse(selectedService?.price.replaceAll('.', '').replaceAll(',', '') ?? '0') ?? 0;
+
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -371,7 +374,8 @@ class _BookingAddressScreenState extends State<BookingAddressScreen> {
                               userLat: _displayLat!,
                               userLng: _displayLng!,
                               note: _noteController.text.trim(),
-                              priceUnit: 'giờ', // default for bypass flow
+                              priceUnit: selectedService?.priceUnit ?? 'lần', // Correct unit
+                              basePrice: basePrice, // Correct price
                             ),
                           ),
                         );

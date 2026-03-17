@@ -46,7 +46,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
-        automaticallyImplyLeading: false,
+        leading: Navigator.canPop(context) 
+            ? const BackButton(color: AppColors.textPrimary) 
+            : null,
         actions: [
           StreamBuilder<int>(
             stream: _notificationRepo.streamUnreadCount(),
@@ -175,7 +177,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
     NotificationModel? target;
     for (final notification in notifications) {
-      if ((notification.type == NotificationType.extraCostApproved ||
+      if (!notification.isRead &&
+          (notification.type == NotificationType.extraCostApproved ||
               notification.type == NotificationType.extraCostRejected) &&
           notification.id != _lastExtraCostNotificationId) {
         target = notification;

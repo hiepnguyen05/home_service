@@ -10,7 +10,6 @@ class ProviderSkillsSection extends StatelessWidget {
   final bool isUpdatePending;
   final VoidCallback onAddService;
   final Function(int) onDeleteService;
-  final Function(int) onEditService;
   final Function(int) onToggleService;
   final IconData Function(String?, String) getSkillIcon;
 
@@ -21,7 +20,6 @@ class ProviderSkillsSection extends StatelessWidget {
     required this.isUpdatePending,
     required this.onAddService,
     required this.onDeleteService,
-    required this.onEditService,
     required this.onToggleService,
     required this.getSkillIcon,
   });
@@ -106,7 +104,6 @@ class ProviderSkillsSection extends StatelessWidget {
                 isEditing: isEditing,
                 isActive: s.isActive,
                 onDelete: () => onDeleteService(index),
-                onEdit: () => onEditService(index),
                 onToggleStatus: () => onToggleService(index),
               );
             }).toList(),

@@ -3,6 +3,7 @@ import '../data/repositories/partner_repository.dart';
 import '../../services/data/models/service_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io';
+import '../data/models/partner_request_model.dart';
 
 class PartnerViewModel extends ChangeNotifier {
   final PartnerRepository _repository;
@@ -116,6 +117,16 @@ class PartnerViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void initializePricing(List<PartnerServiceRequest> services) {
+    _selectedServiceIds.clear();
+    _servicePrices.clear();
+    for (var s in services) {
+      _selectedServiceIds.add(s.serviceId);
+      _servicePrices[s.serviceId] = s.price;
+    }
+    notifyListeners();
+  }
+
   void updateServicePrice(String serviceId, String price) {
     _servicePrices[serviceId] = price;
     notifyListeners();
@@ -144,6 +155,8 @@ class PartnerViewModel extends ChangeNotifier {
           'serviceId': id,
           'serviceName': service.name,
           'price': _servicePrices[id] ?? '0',
+          'iconName': service.iconName,
+          'priceUnit': service.priceUnit,
         };
       }).toList();
 
@@ -164,6 +177,38 @@ class PartnerViewModel extends ChangeNotifier {
         selectedServices: selectedServicesData,
       );
 
+      _isSubmitting = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _isSubmitting = false;
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> submitUpdate({
+    required String userId,
+    required String fullName,
+    required String phoneNumber,
+    required List<PartnerServiceRequest> services,
+    String? bio,
+    double? experienceYears,
+  }) async {
+    _isSubmitting = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.submitUpdate(
+        userId: userId,
+        fullName: fullName,
+        phoneNumber: phoneNumber,
+        services: services,
+        bio: bio,
+        experienceYears: experienceYears,
+      );
       _isSubmitting = false;
       notifyListeners();
       return true;

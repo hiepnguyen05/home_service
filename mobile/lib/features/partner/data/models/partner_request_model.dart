@@ -78,6 +78,7 @@ class PartnerServiceRequest {
   final String serviceId;
   final String serviceName;
   final String price;
+  final String priceUnit; // NEW
   final String? iconName;
   final String? changeType; // 'added', 'updated', 'deleted', null
   final String? oldPrice;
@@ -87,6 +88,7 @@ class PartnerServiceRequest {
     required this.serviceId,
     required this.serviceName,
     required this.price,
+    this.priceUnit = 'lần', // Default to 'lần'
     this.iconName,
     this.changeType,
     this.oldPrice,
@@ -98,6 +100,7 @@ class PartnerServiceRequest {
       'serviceId': serviceId,
       'serviceName': serviceName,
       'price': price,
+      'priceUnit': priceUnit, // NEW
       'iconName': iconName,
       'changeType': changeType,
       'oldPrice': oldPrice,
@@ -110,6 +113,7 @@ class PartnerServiceRequest {
       serviceId: map['serviceId'] ?? '',
       serviceName: map['serviceName'] ?? '',
       price: map['price'] ?? '',
+      priceUnit: map['priceUnit'] ?? 'lần', // NEW
       iconName: map['iconName'],
       changeType: map['changeType'],
       oldPrice: map['oldPrice'],

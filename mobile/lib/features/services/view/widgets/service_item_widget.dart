@@ -4,17 +4,27 @@ import '../../data/models/service_model.dart';
 import '../../../../core/utils/icon_helper.dart';
 
 class ServiceItemWidget extends StatelessWidget {
-  final ServiceModel service;
+  final ServiceModel? service;
+  final String? title;
+  final String? subtitle;
+  final String? iconName;
   final VoidCallback onTap;
 
   const ServiceItemWidget({
     super.key,
-    required this.service,
+    this.service,
+    this.title,
+    this.subtitle,
+    this.iconName,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final displayIcon = iconName ?? service?.iconName ?? 'build';
+    final displayTitle = title ?? service?.name ?? '';
+    final displaySubtitle = subtitle ?? service?.description ?? '';
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -23,6 +33,13 @@ class ServiceItemWidget extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -35,7 +52,7 @@ class ServiceItemWidget extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
-                IconHelper.getIcon(service.iconName),
+                IconHelper.getIcon(displayIcon),
                 color: AppColors.primary,
                 size: 28,
               ),
@@ -48,7 +65,7 @@ class ServiceItemWidget extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    service.name,
+                    displayTitle,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -57,7 +74,7 @@ class ServiceItemWidget extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    service.description,
+                    displaySubtitle,
                     style: const TextStyle(
                       fontSize: 14,
                       color: AppColors.textSecondary,

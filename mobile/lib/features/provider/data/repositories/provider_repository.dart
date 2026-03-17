@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mobile/features/partner/data/models/partner_request_model.dart';
 import '../models/provider_model.dart';
 
 class ProviderRepository {
@@ -177,53 +178,55 @@ class ProviderRepository {
       if (name != null) data['name'] = name;
       if (avatarUrl != null) data['avatarUrl'] = avatarUrl;
 
-      // LUÔN ĐỒNG BỘ dữ liệu từ Partner Request (Hồ sơ đăng ký thợ)
+      // LUÔN ĐỒNG BỘ dữ liệu từ Partner Request (Hồ sơ đã được DUYỆT)
       try {
-        print("🔍 Đang tìm partner_request cho providerId: $providerId");
+        print("🔍 Đang tìm partner_request (status=approved) cho providerId: $providerId");
         final requestSnapshot = await _firestore
             .collection('partner_requests')
             .where('userId', isEqualTo: providerId)
+            .where('status', isEqualTo: 'approved') // Chỉ lấy bản đã duyệt
+            .orderBy('createdAt', descending: true) // Lấy bản mới nhất
             .limit(1)
             .get();
 
-        print("📦 Tìm thấy ${requestSnapshot.docs.length} partner_request");
+        print("📦 Tìm thấy ${requestSnapshot.docs.length} partner_request đã duyệt");
 
         if (requestSnapshot.docs.isNotEmpty) {
           final reqData = requestSnapshot.docs.first.data();
-          print("📄 Request data keys: ${reqData.keys}");
-          print("📄 Request status: ${reqData['status']}");
-
           final List<dynamic>? services = reqData['services'];
-          print("🛠️ Services: ${services?.length ?? 0} dịch vụ");
 
           if (services != null && services.isNotEmpty) {
             List<String> sIds = [];
+            List<Map<String, dynamic>> serviceObjects = [];
             double minPrice = double.infinity;
 
             for (var s in services) {
               final sMap = s as Map<String, dynamic>;
-              print(
-                  "   - Service: ${sMap['serviceName']}, Price: '${sMap['price']}'");
+              
+              // Map to PartnerServiceRequest to ensure structure and then toMap
+              final serviceReq = PartnerServiceRequest.fromMap(sMap);
+              
+              sIds.add(serviceReq.serviceId);
+              serviceObjects.add(serviceReq.toMap());
 
-              if (sMap['serviceId'] != null) sIds.add(sMap['serviceId']);
-              if (sMap['price'] != null) {
-                String pStr = sMap['price']
-                    .toString()
-                    .replaceAll('.', '')
-                    .replaceAll(',', '')
-                    .replaceAll(' ', '');
-                double? p = double.tryParse(pStr);
-                print("   - Parsed price: '$pStr' -> $p");
-                if (p != null && p > 0 && p < minPrice) minPrice = p;
-              }
+              // Parse price for minPrice (for display on home screen)
+              String pStr = serviceReq.price
+                  .replaceAll('.', '')
+                  .replaceAll(',', '')
+                  .replaceAll(' ', '');
+              double? p = double.tryParse(pStr);
+              if (p != null && p > 0 && p < minPrice) minPrice = p;
             }
 
-            print("✅ Final: serviceIds=${sIds.length}, minPrice=$minPrice");
-            if (sIds.isNotEmpty) data['serviceIds'] = sIds;
+            print("✅ Final: serviceIds=${sIds.length}, services=${serviceObjects.length}, minPrice=$minPrice");
+            if (sIds.isNotEmpty) {
+              data['serviceIds'] = sIds;
+              data['services'] = serviceObjects; // LƯU CẢ HAI ĐỂ ĐỒNG BỘ
+            }
             if (minPrice != double.infinity) data['price'] = minPrice;
           }
         } else {
-          print("⚠️ KHÔNG tìm thấy partner_request nào cho user này!");
+          print("⚠️ KHÔNG tìm thấy partner_request (approved) cho user này!");
         }
       } catch (e, stackTrace) {
         print("❌ Lỗi sync partner_request: $e");

@@ -18,11 +18,11 @@ class ProviderInfoTab extends StatelessWidget {
   final TextEditingController bioController;
   final VoidCallback onAddService;
   final Function(int) onDeleteService;
-  final Function(int) onEditService;
   final Function(int) onToggleService;
   final IconData Function(String?, String) getSkillIcon;
   final VoidCallback onPickImage;
   final Function(int) onRemoveImage;
+  final VoidCallback? onSeeAllReviews;
 
   const ProviderInfoTab({
     super.key,
@@ -36,11 +36,11 @@ class ProviderInfoTab extends StatelessWidget {
     required this.bioController,
     required this.onAddService,
     required this.onDeleteService,
-    required this.onEditService,
     required this.onToggleService,
     required this.getSkillIcon,
     required this.onPickImage,
     required this.onRemoveImage,
+    this.onSeeAllReviews,
   });
 
   @override
@@ -70,7 +70,6 @@ class ProviderInfoTab extends StatelessWidget {
             isUpdatePending: isUpdatePending,
             onAddService: onAddService,
             onDeleteService: onDeleteService,
-            onEditService: onEditService,
             onToggleService: onToggleService,
             getSkillIcon: getSkillIcon,
           ),
@@ -89,7 +88,11 @@ class ProviderInfoTab extends StatelessWidget {
           const SizedBox(height: 24),
 
           // Latest Review Teaser
-          LatestReviewTeaser(reviewCount: providerModel?.reviewCount ?? 0),
+          LatestReviewTeaser(
+            reviewCount: providerModel?.reviewCount ?? 0,
+            providerId: providerModel?.id ?? partnerRequest?.userId ?? '',
+            onSeeAll: onSeeAllReviews,
+          ),
         ],
       ),
     );

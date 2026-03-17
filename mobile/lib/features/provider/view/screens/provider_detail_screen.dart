@@ -14,12 +14,12 @@ import 'package:mobile/core/widgets/sliver_tab_delegate.dart';
 import 'package:mobile/features/provider/view/widgets/details/provider_detail_app_bar.dart';
 import 'package:mobile/features/provider/view/widgets/details/provider_info_tab.dart';
 import 'package:mobile/features/provider/view/widgets/details/provider_reviews_tab.dart';
-import 'package:mobile/features/provider/view/widgets/details/add_service_picker.dart';
 import 'package:mobile/features/provider/view/widgets/details/provider_profile_header.dart';
 import 'package:mobile/features/provider/view/widgets/details/provider_save_button.dart';
 
 import 'package:mobile/features/chat/view/screens/chat_screen.dart';
-import 'package:mobile/features/provider/view/screens/provider_services_screen.dart';
+import 'package:mobile/features/services/view/screens/services_list_screen.dart';
+import 'package:mobile/features/partner/view/screens/service_pricing_screen.dart';
 
 class ProviderDetailScreen extends StatefulWidget {
   final ProviderModel? provider;
@@ -77,16 +77,7 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen>
             _completedJobsCount = results[0];
             _bioController.text = _providerModel?.bio ?? '';
             _tempGallery = List<String>.from(_providerModel?.gallery ?? []);
-            
-            List<PartnerServiceRequest> baseServices = _providerModel?.services ?? [];
-            if (baseServices.isEmpty && _providerModel!.serviceIds.isNotEmpty) {
-               baseServices = _providerModel!.serviceIds.map((id) => PartnerServiceRequest(
-                 serviceId: id,
-                 serviceName: 'Dịch vụ ($id)',
-                 price: '0',
-               )).toList();
-            }
-            _tempServices = List<PartnerServiceRequest>.from(baseServices);
+            _tempServices = List<PartnerServiceRequest>.from(_providerModel?.services ?? []);
             _isLoading = false;
           });
           return;
@@ -116,19 +107,9 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen>
           _tempGallery = List<String>.from(
               _providerModel?.gallery ?? _partnerRequest?.certificates ?? []);
 
-          List<PartnerServiceRequest> baseServices = _providerModel?.services ?? [];
-          
-          if (baseServices.isEmpty && _providerModel != null && _providerModel!.serviceIds.isNotEmpty) {
-             baseServices = _providerModel!.serviceIds.map((id) => PartnerServiceRequest(
-               serviceId: id,
-               serviceName: 'Dịch vụ ($id)',
-               price: '0',
-             )).toList();
-          }
-
-          if (baseServices.isEmpty) {
-            baseServices = _partnerRequest?.services ?? [];
-          }
+          List<PartnerServiceRequest> baseServices = _providerModel?.services ?? 
+              _partnerRequest?.services ?? 
+              [];
 
           _tempServices = List<PartnerServiceRequest>.from(baseServices);
           _isLoading = false;
@@ -182,70 +163,16 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen>
     setState(() => _isSaving = true);
     try {
       final providerRepo = ProviderRepository();
-      final partnerRepo = PartnerRepository();
 
       await providerRepo.updateProviderProfile(user.uid, {
         'bio': _bioController.text.trim(),
         'gallery': _tempGallery,
       });
 
-      List<PartnerServiceRequest> changesOnly = [];
-      List<PartnerServiceRequest> baseForDiff = _providerModel?.services ?? [];
-      if (baseForDiff.isEmpty && _providerModel != null && _providerModel!.serviceIds.isNotEmpty) {
-          baseForDiff = _providerModel!.serviceIds.map((id) => PartnerServiceRequest(
-            serviceId: id,
-            serviceName: 'Dịch vụ ($id)',
-            price: '0',
-          )).toList();
-      }
-      if (baseForDiff.isEmpty) {
-        baseForDiff = _partnerRequest?.services ?? [];
-      }
-      final currentServices = baseForDiff;
-
-      for (var temp in _tempServices) {
-        PartnerServiceRequest? original;
-        try {
-          original = currentServices.firstWhere(
-            (os) => os.serviceId == temp.serviceId,
-          );
-        } catch (_) {
-          original = null;
-        }
-
-        if (original == null) {
-          changesOnly.add(PartnerServiceRequest(
-            serviceId: temp.serviceId,
-            serviceName: temp.serviceName,
-            price: temp.price,
-            iconName: temp.iconName,
-            changeType: 'added',
-          ));
-        } else if (original.price != temp.price) {
-          changesOnly.add(PartnerServiceRequest(
-            serviceId: temp.serviceId,
-            serviceName: temp.serviceName,
-            price: temp.price,
-            iconName: temp.iconName,
-            changeType: 'updated',
-            oldPrice: original.price,
-          ));
-        }
-      }
-
-      bool servicesChanged = changesOnly.isNotEmpty;
-
-      if (servicesChanged) {
-        await partnerRepo.submitUpdate(
-          userId: user.uid,
-          fullName: user.fullName,
-          phoneNumber: user.phone,
-          services: changesOnly,
-          bio: _bioController.text.trim(),
-          experienceYears: _providerModel?.experienceYears?.toDouble() ??
-              _partnerRequest?.experienceYears,
-        );
-      }
+      await providerRepo.updateProviderProfile(user.uid, {
+        'bio': _bioController.text.trim(),
+        'gallery': _tempGallery,
+      });
 
       await _loadData();
       setState(() {
@@ -255,10 +182,8 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen>
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(servicesChanged
-                ? 'Cập nhật hồ sơ thành công! Yêu cầu thay đổi Dịch vụ & Giá tiền đang chờ duyệt.'
-                : 'Cập nhật hồ sơ thành công!'),
+          const SnackBar(
+            content: Text('Cập nhật hồ sơ thành công!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -355,13 +280,13 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen>
                   bioController: _bioController,
                   onAddService: _showAddServicePicker,
                   onDeleteService: _deleteService,
-                  onEditService: _editServicePrice,
                   onToggleService: _toggleServiceStatus,
                   getSkillIcon: _getSkillIcon,
                   onPickImage: _pickImage,
                   onRemoveImage: (index) => setState(() => _tempGallery.removeAt(index)),
+                  onSeeAllReviews: () => _tabController.animateTo(1),
                 ),
-                const ProviderReviewsTab(),
+                ProviderReviewsTab(providerId: _providerModel?.id ?? widget.provider?.id ?? ''),
               ],
             ),
           ),
@@ -431,16 +356,17 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen>
                       child: ElevatedButton(
                         onPressed: () {
                           if (widget.canBookDirect) {
-                            // Go to service selection for THIS provider
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ProviderServicesScreen(
-                                  provider: widget.provider!,
-                                ),
+                            // Go to service
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ServicesListScreen(
+                                provider: _providerModel!,
+                                providerServices: _providerModel!.services,
                               ),
-                            );
-                          } else {
+                            ),
+                          );
+                        } else {
                             Navigator.pop(context, _providerModel!.id);
                           }
                         },
@@ -467,19 +393,31 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen>
     );
   }
 
-  void _showAddServicePicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => AddServicePicker(
-        currentServices: _tempServices,
-        onServiceSelected: (PartnerServiceRequest newService) {
-          setState(() {
-            _tempServices.add(newService);
-          });
-        },
+  void _showAddServicePicker() async {
+    final newServices = await Navigator.push<List<PartnerServiceRequest>>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ServicePricingScreen(
+          initialServices: _tempServices,
+          isUpdateMode: true,
+          providerId: _providerModel!.id,
+          providerName: _providerModel!.name,
+          providerPhone: _providerModel!.phoneNumber,
+          onSave: (services) {
+            setState(() {
+              _tempServices = services;
+            });
+          },
+        ),
       ),
     );
+    if (newServices != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'Đã cập nhật danh sách dịch vụ. Nhấn "Lưu thay đổi" để gửi duyệt.')),
+      );
+    }
   }
 
   Future<void> _deleteService(int index) async {
@@ -555,53 +493,6 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen>
     } catch (e) {
       setState(() => _isSaving = false);
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
-    }
-  }
-
-  Future<void> _editServicePrice(int index) async {
-    final service = _tempServices[index];
-    final controller = TextEditingController(text: service.price);
-    
-    final newPrice = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Sửa giá: ${service.serviceName}'),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Giá tiền (VNĐ)',
-            hintText: 'Nhập giá mới',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
-          TextButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()), 
-            child: const Text('Cập nhật')
-          ),
-        ],
-      ),
-    );
-
-    if (newPrice != null && newPrice.isNotEmpty && newPrice != service.price) {
-      setState(() {
-        _tempServices[index] = PartnerServiceRequest(
-          serviceId: service.serviceId,
-          serviceName: service.serviceName,
-          price: newPrice,
-          iconName: service.iconName,
-          isActive: service.isActive,
-          changeType: 'updated',
-          oldPrice: service.price,
-        );
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã cập nhật giá tạm thời. Nhấn "Lưu thay đổi" để gửi duyệt.'))
-        );
-      }
     }
   }
 

@@ -14,6 +14,7 @@ import '../../../services/view/screens/services_list_screen.dart';
 import '../../../../core/utils/formatters.dart';
 import 'package:mobile/features/provider/view/screens/provider_detail_screen.dart';
 
+
 // ... (previous imports)
 
 class HomeScreen extends StatelessWidget {
@@ -145,10 +146,13 @@ class HomeScreen extends StatelessWidget {
                                     );
                                   },
                                   onBook: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                            'Tính năng đặt lịch trực tiếp với ${provider.name} đang phát triển'),
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ServicesListScreen(
+                                          provider: provider,
+                                          providerServices: provider.services,
+                                        ),
                                       ),
                                     );
                                   },
