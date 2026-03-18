@@ -4,6 +4,14 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
 
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  if (kDebugMode) {
+    print("Handling a background message: ${message.messageId}");
+  }
+}
+
 class NotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   static final FlutterLocalNotificationsPlugin _localNotifications =
@@ -54,7 +62,7 @@ class NotificationService {
       AndroidNotification? android = message.notification?.android;
 
       if (notification != null && android != null) {
-        // Cập nhật: v21.0.0 dùng named arguments
+        // Hiển thị thông báo hệ thống (v21.0.0 dùng named arguments)
         _localNotifications.show(
           id: notification.hashCode,
           title: notification.title,
@@ -72,6 +80,24 @@ class NotificationService {
         );
       }
     });
+
+    // Lắng nghe khi người dùng nhấn vào thông báo (Background)
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      _handleMessageNavigation(message);
+    });
+
+    // Kiểm tra thông báo khi app đã bị kill
+    RemoteMessage? initialMessage =
+        await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      _handleMessageNavigation(initialMessage);
+    }
+  }
+
+  static void _handleMessageNavigation(RemoteMessage message) {
+    if (kDebugMode) {
+      print('🔔 [NotificationService] Nhấn vào thông báo: ${message.data}');
+    }
   }
 
   static Future<String?> getToken() async {
@@ -87,7 +113,7 @@ class NotificationService {
     ).ref('notifications/$userId').onChildAdded.listen((event) {
       final data = event.snapshot.value as Map<dynamic, dynamic>?;
       if (data != null) {
-        // Cập nhật: v21.0.0 dùng named arguments
+        // Hiển thị thông báo hệ thống (v21.0.0 dùng named arguments)
         _localNotifications.show(
           id: data.hashCode,
           title: data['title']?.toString(),

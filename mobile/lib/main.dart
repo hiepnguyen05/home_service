@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
 import 'core/services/notification_service.dart';
 import 'app.dart';
@@ -14,6 +15,7 @@ void main() async {
 
   // Khởi tạo thông báo
   await NotificationService.initialize();
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   runApp(
     const AppProviders(

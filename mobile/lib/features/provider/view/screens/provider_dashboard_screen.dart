@@ -10,6 +10,7 @@ import 'package:mobile/features/booking/data/models/booking_model.dart';
 import 'package:mobile/features/booking/data/repositories/booking_repository.dart'; // import tạm để dùng BookingStatus consts, có thể move vào model
 // Import ViewModel
 import 'package:mobile/features/provider/viewmodel/provider_viewmodel.dart';
+import 'package:mobile/features/wallet/viewmodel/wallet_viewmodel.dart';
 
 // Widgets
 import '../widgets/dashboard/dashboard_header.dart';
@@ -125,6 +126,21 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
           booking: booking,
           onAccept: () async {
             bookingStatusSub?.cancel(); // Hủy listener status
+            
+            // NEW: Kiểm tra số dư ví trước khi chấp nhận
+            if (mounted) {
+              final walletVm = Provider.of<WalletViewModel>(context, listen: false);
+              final balance = walletVm.wallet?.balance ?? 0;
+              if (balance <= 0) {
+                _isDialogShowing = false;
+                Navigator.pop(ctx);
+                DialogUtils.showError(context, 
+                  title: "Không thể nhận việc", 
+                  message: "Số dư ví của bạn không đủ để nhận việc mới. Vui lòng nạp thêm tiền.");
+                return;
+              }
+            }
+
             Navigator.pop(ctx);
             _isDialogShowing = false;
 
@@ -298,25 +314,6 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
     );
   }
 
-  // Debug tool
-  void _showTestJobRequest() {
-    // ... Mock data ...
-    var mockBooking = BookingModel(
-      id: "test_booking_${DateTime.now().millisecondsSinceEpoch}",
-      customerId: "test_customer",
-      serviceId: "Test Service",
-      providerId: "test_provider",
-      scheduleAt: DateTime.now().add(const Duration(hours: 2)),
-      address: "Test Address",
-      status: BookingStatus.pending,
-      totalPrice: 500000,
-      paymentMethod: "COD",
-      createdAt: DateTime.now(),
-      note: "Test note",
-    );
-    // Gọi trực tiếp hàm show dialog
-    _showJobRequestDialog(mockBooking);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -443,12 +440,17 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                   jobsToday: vm.jobsTodayCount,
                   activeJobs: vm.activeJobCount,
                 ),
-                IncomeCard(
-                  incomeToday: vm.incomeToday,
-                  incomeMonth: vm.incomeMonth,
-                  onViewDetails: () {
-                    // Navigate to income details
-                  },
+                Consumer<WalletViewModel>(
+                  builder: (context, walletVm, child) {
+                    return IncomeCard(
+                      incomeToday: walletVm.getTodayTotal(),
+                      incomeMonth: walletVm.getMonthlyTotal(),
+                      onViewDetails: () {
+                        // Chuyển sang tab Ví (Index 2)
+                        context.read<ProviderViewModel>().setCurrentTabIndex(2);
+                      },
+                    );
+                  }
                 ),
                 const SizedBox(height: 16),
                 UpcomingJobsList(
@@ -456,20 +458,6 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                   onCompleteJob: _showCompleteJobDialog,
                 ),
                 const SizedBox(height: 20),
-                // Test Button
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: ElevatedButton.icon(
-                    onPressed: _showTestJobRequest,
-                    icon: const Icon(Icons.notifications_active),
-                    label: const Text("Test Nhận Job Mới (Debug)"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 48),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),

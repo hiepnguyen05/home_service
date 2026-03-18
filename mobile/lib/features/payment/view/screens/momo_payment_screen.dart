@@ -12,7 +12,8 @@ class MoMoPaymentScreen extends StatefulWidget {
   final MoMoPaymentResult paymentResult;
   final String serviceName;
   final double amount;
-  final String bookingId; // NEW: Should pass bookingId explicitly
+  final String? bookingId; 
+  final bool isTopUp;
   final Function(bool success) onPaymentComplete;
 
   const MoMoPaymentScreen({
@@ -20,7 +21,8 @@ class MoMoPaymentScreen extends StatefulWidget {
     required this.paymentResult,
     required this.serviceName,
     required this.amount,
-    required this.bookingId, // NEW
+    this.bookingId,
+    this.isTopUp = false,
     required this.onPaymentComplete,
   });
 
@@ -55,7 +57,7 @@ class _MoMoPaymentScreenState extends State<MoMoPaymentScreen> {
 
   void _listenToBookingCancellation() {
     final bookingId = widget.bookingId;
-    // if (bookingId == null) return; // bookingId is required now
+    if (widget.isTopUp || bookingId == null) return;
 
     debugPrint(
         "👀 [MoMoPayment] Listening to booking status for cancellation: $bookingId");

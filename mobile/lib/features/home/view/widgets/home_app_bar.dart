@@ -67,7 +67,7 @@ class HomeAppBar extends StatelessWidget {
                       );
                     },
                     icon: const Icon(
-                      Icons.mode_comment, // Đổi sang icon mode_comment theo ý bạn
+                      Icons.forum_outlined, // Đổi sang icon bong bóng chat
                       size: 24,
                       color: AppColors.textSecondary,
                     ),

@@ -109,8 +109,12 @@ class BookingViewModel extends ChangeNotifier {
       allProviders = await _providerRepository.getProviders();
       // }
 
-      // 3. Lọc theo service ID
+      // 3. Lọc theo service ID và TRÁNH ĐẶT CHÍNH MÌNH
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
       List<ProviderModel> filteredList = allProviders.where((p) {
+        // Không cho phép thợ tự thấy và đặt chính mình
+        if (p.id == currentUserId) return false;
+        
         return serviceId == null || p.serviceIds.contains(serviceId);
       }).toList();
 
@@ -240,6 +244,11 @@ class BookingViewModel extends ChangeNotifier {
       // Create Booking object
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) throw Exception("Vui lòng đăng nhập");
+
+      // KIỂM TRA TRÁNH ĐẶT CHÍNH MÌNH (Security check)
+      if (currentUser.uid == provider.id) {
+        throw Exception("Bạn không thể đặt chính dịch vụ của mình!");
+      }
 
       final bookingId = const Uuid().v4();
       final booking = BookingModel(

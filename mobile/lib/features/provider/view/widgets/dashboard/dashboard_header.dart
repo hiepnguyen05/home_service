@@ -65,7 +65,7 @@ class DashboardHeader extends StatelessWidget {
                     children: [
                       IconButton(
                         icon: const Icon(
-                          Icons.mode_comment, // Đổi sang icon mode_comment theo ý bạn
+                          Icons.forum_outlined, // Đổi sang icon bong bóng chat
                           color: AppColors.textPrimary,
                           size: 24,
                         ),

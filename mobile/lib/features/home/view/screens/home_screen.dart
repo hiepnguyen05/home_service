@@ -146,6 +146,15 @@ class HomeScreen extends StatelessWidget {
                                     );
                                   },
                                   onBook: () {
+                                    if (currentUser?.uid == provider.id) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Bạn không thể đặt chính dịch vụ của mình!'),
+                                          backgroundColor: Colors.orange,
+                                        ),
+                                      );
+                                      return;
+                                    }
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(

@@ -8,21 +8,26 @@ import 'package:mobile/features/booking/data/repositories/booking_repository.dar
 import 'package:mobile/features/provider/data/models/provider_model.dart';
 import 'package:mobile/features/provider/data/repositories/provider_repository.dart';
 import 'package:mobile/core/services/location_service.dart';
+import 'package:mobile/features/wallet/data/repositories/wallet_repository.dart';
 
 /// ViewModel xử lý logic nghiệp vụ cho Dashboard và các tính năng chính của Nhà cung cấp
 class ProviderViewModel extends ChangeNotifier {
   final ProviderRepository _providerRepo;
   final BookingRepository _bookingRepo;
+  final WalletRepository _walletRepo;
 
   ProviderViewModel({
     ProviderRepository? providerRepo,
     BookingRepository? bookingRepo,
+    WalletRepository? walletRepo,
   })  : _providerRepo = providerRepo ?? ProviderRepository(),
-        _bookingRepo = bookingRepo ?? BookingRepository();
+        _bookingRepo = bookingRepo ?? BookingRepository(),
+        _walletRepo = walletRepo ?? WalletRepository();
 
   // --- Trạng thái (State) ---
   bool _isLoading = true;
   bool _isOnline = false;
+  int _currentTabIndex = 0;
   ProviderModel? _provider;
   List<BookingModel> _bookings = [];
   StreamSubscription<QuerySnapshot>? _jobRequestSubscription;
@@ -35,8 +40,14 @@ class ProviderViewModel extends ChangeNotifier {
   // --- Getters truy cập trạng thái ---
   bool get isLoading => _isLoading;
   bool get isOnline => _isOnline;
+  int get currentTabIndex => _currentTabIndex;
   ProviderModel? get provider => _provider;
   List<BookingModel> get bookings => _bookings;
+
+  void setCurrentTabIndex(int index) {
+    _currentTabIndex = index;
+    notifyListeners();
+  }
 
   // --- Các thuộc tính tính toán (Computed Properties) cho UI ---
 
@@ -193,6 +204,13 @@ class ProviderViewModel extends ChangeNotifier {
     if (value) {
       // --- BẬT TRẠNG THÁI ONLINE ---
       try {
+        // 0. Kiểm tra ví (Bắt buộc có số dư > 0 để nhận việc - mô hình Grab/Be)
+        final wallet = await _walletRepo.getWallet(userId);
+        if (wallet == null || wallet.balance <= 0) {
+          onError?.call("Số dư ví của bạn không đủ (<= 0đ). Vui lòng nạp tiền để tiếp tục nhận việc.");
+          return false;
+        }
+
         // 1. Kiểm tra hồ sơ người dùng (bắt buộc có Avatar và SĐT)
         final userDoc = await FirebaseFirestore.instance
             .collection('users')

@@ -8,6 +8,8 @@ import '../widgets/summary/summary_success_header.dart';
 import '../widgets/summary/summary_card.dart';
 import '../widgets/summary/summary_detail_row.dart';
 import '../widgets/summary/payment_status_badge.dart';
+import '../../../wallet/viewmodel/wallet_viewmodel.dart';
+import 'package:provider/provider.dart';
 
 class ProviderJobSummaryScreen extends StatefulWidget {
   final BookingModel booking;
@@ -44,6 +46,16 @@ class _ProviderJobSummaryScreenState extends State<ProviderJobSummaryScreen> {
         completionImageUrl: widget.completionImageUrl,
         finalPrice: finalPrice,
       );
+      
+      // 2. Cập nhật ví thợ
+      if (mounted) {
+        final walletVm = Provider.of<WalletViewModel>(context, listen: false);
+        // Lấy lại booking đã cập nhật status/price
+        final updatedBooking = await repo.getBookingById(widget.booking.id);
+        if (updatedBooking != null) {
+          await walletVm.handleJobCompletion(updatedBooking);
+        }
+      }
       
       if (mounted) {
         DialogUtils.showSuccess(

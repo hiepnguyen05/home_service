@@ -300,7 +300,7 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen>
               color: Colors.black26,
               child: const Center(child: CircularProgressIndicator(color: AppColors.primary)),
             ),
-          if (widget.isViewOnly && _providerModel != null)
+          if (widget.isViewOnly && _providerModel != null && user?.uid != _providerModel?.id)
             Positioned(
               bottom: 0,
               left: 0,
@@ -355,18 +355,31 @@ class _ProviderDetailScreenState extends State<ProviderDetailScreen>
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
+                          final authViewModel = context.read<AuthViewModel>();
+                          final currentUserId = authViewModel.currentUser?.uid;
+
+                          if (currentUserId == _providerModel?.id) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Bạn không thể đặt chính dịch vụ của mình!'),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                            return;
+                          }
+
                           if (widget.canBookDirect) {
                             // Go to service
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ServicesListScreen(
-                                provider: _providerModel!,
-                                providerServices: _providerModel!.services,
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ServicesListScreen(
+                                  provider: _providerModel!,
+                                  providerServices: _providerModel!.services,
+                                ),
                               ),
-                            ),
-                          );
-                        } else {
+                            );
+                          } else {
                             Navigator.pop(context, _providerModel!.id);
                           }
                         },
