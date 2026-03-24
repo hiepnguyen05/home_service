@@ -8,9 +8,10 @@ class WorkflowTimer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final int hours = totalSeconds ~/ 3600;
-    final int minutes = (totalSeconds % 3600) ~/ 60;
-    final int seconds = totalSeconds % 60;
+    final int safeTotal = totalSeconds < 0 ? 0 : totalSeconds;
+    final int hours = safeTotal ~/ 3600;
+    final int minutes = (safeTotal % 3600) ~/ 60;
+    final int seconds = safeTotal % 60;
 
     return Column(
       children: [

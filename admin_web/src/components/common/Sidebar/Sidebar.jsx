@@ -20,19 +20,14 @@ const Sidebar = () => {
             icon: '🔧'
         },
         {
-            path: '/worker-applications',
-            label: 'Đơn đăng ký thợ',
-            icon: '📝'
+            path: '/orders',
+            label: 'Quản lý đơn hàng',
+            icon: '📅'
         },
         {
             path: '/services',
             label: 'Dịch vụ',
             icon: '⚙️'
-        },
-        {
-            path: '/bookings',
-            label: 'Đặt lịch',
-            icon: '📅'
         },
         {
             path: '/payments',

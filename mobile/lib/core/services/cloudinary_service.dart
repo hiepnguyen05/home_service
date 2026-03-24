@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:cloudinary_public/cloudinary_public.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import '../network/app_exceptions.dart';
 import '../network/network_constants.dart';
 import 'cloudinary_config.dart';
@@ -18,6 +19,38 @@ class CloudinaryService {
     _uploadPreset,
     cache: false,
   );
+
+  /// Helper kiểm tra định dạng ảnh
+  static bool _isImageFile(String path) {
+    final lower = path.toLowerCase();
+    return lower.endsWith('.jpg') || 
+           lower.endsWith('.jpeg') || 
+           lower.endsWith('.png') || 
+           lower.endsWith('.webp');
+  }
+
+  /// Nén ảnh để tối ưu tốc độ upload
+  static Future<File> _compressImage(File file) async {
+    try {
+      if (!_isImageFile(file.path)) return file;
+      
+      final filePath = file.absolute.path;
+      final outPath = "${filePath}_compressed.jpg";
+      
+      final result = await FlutterImageCompress.compressAndGetFile(
+        filePath, 
+        outPath,
+        quality: 70, 
+        minWidth: 1024, 
+        minHeight: 1024,
+      );
+      
+      return result == null ? file : File(result.path);
+    } catch (e) {
+      print('[CLOUDINARY] Compression failed: $e');
+      return file; 
+    }
+  }
 
   /// Upload ảnh avatar lên Cloudinary
   static Future<String?> uploadAvatar(File imageFile) async {
@@ -49,10 +82,13 @@ class CloudinaryService {
 
       print('[CLOUDINARY] Bắt đầu upload ảnh: $fileName');
 
+      // Nén ảnh để gia tăng tốc độ upload
+      final compressedFile = await _compressImage(imageFile);
+
       // Upload ảnh lên Cloudinary
       final response = await _cloudinary.uploadFile(
         CloudinaryFile.fromFile(
-          imageFile.path,
+          compressedFile.path,
           publicId: fileName,
           folder: 'avatars', // Tạo folder avatars trên Cloudinary
           resourceType: CloudinaryResourceType.Image,
@@ -100,10 +136,13 @@ class CloudinaryService {
 
       print('[CLOUDINARY] Uploading file: $fileName to folder: $folder');
 
+      // Tối ưu tốc độ: thử nén nếu đó là định dạng ảnh
+      final compressedFile = await _compressImage(file);
+
       // Upload file lên Cloudinary
       final response = await _cloudinary.uploadFile(
         CloudinaryFile.fromFile(
-          file.path,
+          compressedFile.path,
           publicId: fileName,
           folder: folder,
           resourceType: resourceType,

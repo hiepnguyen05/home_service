@@ -17,7 +17,7 @@ class NewJobRequestDialog extends StatefulWidget {
     required this.booking,
     required this.onAccept,
     required this.onReject,
-    this.timeoutSeconds = 90,
+    this.timeoutSeconds = 30,
   });
 
   @override

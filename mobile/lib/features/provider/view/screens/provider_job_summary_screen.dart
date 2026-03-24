@@ -121,7 +121,8 @@ class _ProviderJobSummaryScreenState extends State<ProviderJobSummaryScreen> {
     }
 
     // 4. Tổng cộng cuối cùng
-    final totalIncome = calculatedBasePrice + extraCost;
+    // CHỈ cộng chi phí phát sinh nếu khách hàng ĐÃ ĐỒNG Ý
+    final totalIncome = calculatedBasePrice + (isExtraCostApproved ? extraCost : 0.0);
 
     final isCOD = widget.booking.paymentMethod == BookingPaymentMethod.COD;
     final buttonText = isCOD ? "Xác nhận thu tiền và hoàn thành" : "Xác nhận và Đóng";
@@ -188,9 +189,10 @@ class _ProviderJobSummaryScreenState extends State<ProviderJobSummaryScreen> {
                   isBoldValue: isHourly,
                 ),
                 SummaryDetailRow(
-                  label: "Chi phí phát sinh:", 
+                  label: isExtraCostApproved ? "Chi phí phát sinh:" : "Chi phí phát sinh (Chưa duyệt):", 
                   value: currencyFormat.format(extraCost),
                   isBoldValue: extraCost > 0,
+                  valueColor: isExtraCostApproved ? null : Colors.orange,
                 ),
                 if (widget.booking.extraCostDescription != null &&
                     widget.booking.extraCostDescription!.isNotEmpty)

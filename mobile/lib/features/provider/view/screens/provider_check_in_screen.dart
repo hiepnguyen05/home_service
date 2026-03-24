@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:url_launcher/url_launcher.dart';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile/core/constants/app_colors.dart';
@@ -28,6 +30,8 @@ class _ProviderCheckInScreenState extends State<ProviderCheckInScreen> {
   bool _isGlobalLoading = false;
   String? _serviceName;
   String? _customerName;
+  String? _customerPhone;
+  bool _isLoadingCustomer = true;
 
   StreamSubscription? _statusSubscription;
   bool _isCancellationDialogShowing = false;
@@ -82,10 +86,43 @@ class _ProviderCheckInScreenState extends State<ProviderCheckInScreen> {
         setState(() {
           _serviceName = service.name;
           _customerName = user?.fullName;
+          _customerPhone = user?.phone;
+          _isLoadingCustomer = false;
         });
       }
     } catch (e) {
       print("Error fetching names in CheckIn: $e");
+      if (mounted) {
+        setState(() {
+          _isLoadingCustomer = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _callCustomer() async {
+    if (_customerPhone == null || _customerPhone!.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Chưa có số điện thoại khách hàng")),
+        );
+      }
+      return;
+    }
+    final Uri launchUri = Uri(scheme: 'tel', path: _customerPhone);
+    try {
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
+      } else {
+        throw 'Cannot launch';
+      }
+    } catch (e) {
+      print("Lỗi gọi điện: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Không thể thực hiện cuộc gọi")),
+        );
+      }
     }
   }
 
@@ -192,6 +229,25 @@ class _ProviderCheckInScreenState extends State<ProviderCheckInScreen> {
           ),
         ),
         centerTitle: true,
+        actions: [
+          if (!_isLoadingCustomer && _customerPhone != null && _customerPhone!.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.phone_in_talk, color: AppColors.primary),
+              onPressed: _callCustomer,
+              tooltip: "Gọi khách hàng",
+            )
+          else if (_isLoadingCustomer)
+            const Padding(
+              padding: EdgeInsets.only(right: 16.0),
+              child: Center(
+                child: SizedBox(
+                  width: 20, 
+                  height: 20, 
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)
+                )
+              ),
+            )
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(color: AppColors.primary.withOpacity(0.2), height: 1),

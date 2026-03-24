@@ -7,7 +7,8 @@ class WaitingForProviderDialog extends StatefulWidget {
   final String bookingId;
   final BookingViewModel bookingViewModel;
   final VoidCallback onSuccess;
-  final VoidCallback? onWaitingPayment; // NEW
+  final VoidCallback? onWaitingPayment;
+  final VoidCallback? onProviderAccepted;
   final Function(String) onFailure;
 
   const WaitingForProviderDialog({
@@ -15,7 +16,8 @@ class WaitingForProviderDialog extends StatefulWidget {
     required this.bookingId,
     required this.bookingViewModel,
     required this.onSuccess,
-    this.onWaitingPayment, // NEW
+    this.onWaitingPayment,
+    this.onProviderAccepted,
     required this.onFailure,
   });
 
@@ -89,6 +91,20 @@ class _WaitingForProviderDialogState extends State<WaitingForProviderDialog> {
 
         if (widget.onWaitingPayment != null) {
           widget.onWaitingPayment!();
+        } else {
+          widget.onSuccess();
+        }
+      } else if (booking.status == BookingStatus.accepted) {
+        // Case 3: Provider accepted future booking
+        print("✅ [WaitDialog] Provider accepted future booking");
+        _cleanup();
+        _hasCompleted = true;
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+
+        if (widget.onProviderAccepted != null) {
+          widget.onProviderAccepted!();
         } else {
           widget.onSuccess();
         }

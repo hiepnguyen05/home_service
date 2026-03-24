@@ -8,6 +8,8 @@ import 'package:mobile/features/booking/data/repositories/booking_repository.dar
 import 'package:mobile/features/provider/data/models/provider_model.dart';
 import 'package:mobile/features/provider/data/repositories/provider_repository.dart';
 import 'package:mobile/core/services/location_service.dart';
+import 'package:mobile/features/services/data/models/service_model.dart';
+import 'package:mobile/features/services/data/repositories/service_repository.dart';
 import 'package:mobile/features/wallet/data/repositories/wallet_repository.dart';
 
 /// ViewModel xử lý logic nghiệp vụ cho Dashboard và các tính năng chính của Nhà cung cấp
@@ -15,14 +17,19 @@ class ProviderViewModel extends ChangeNotifier {
   final ProviderRepository _providerRepo;
   final BookingRepository _bookingRepo;
   final WalletRepository _walletRepo;
+  final ServiceRepository _serviceRepo;
+
+  Map<String, ServiceModel> _serviceMap = {};
 
   ProviderViewModel({
     ProviderRepository? providerRepo,
     BookingRepository? bookingRepo,
     WalletRepository? walletRepo,
+    ServiceRepository? serviceRepo,
   })  : _providerRepo = providerRepo ?? ProviderRepository(),
         _bookingRepo = bookingRepo ?? BookingRepository(),
-        _walletRepo = walletRepo ?? WalletRepository();
+        _walletRepo = walletRepo ?? WalletRepository(),
+        _serviceRepo = serviceRepo ?? ServiceRepository();
 
   // --- Trạng thái (State) ---
   bool _isLoading = true;
@@ -91,6 +98,13 @@ class ProviderViewModel extends ChangeNotifier {
         .fold(0.0, (sum, item) => sum + item.totalPrice);
   }
 
+  Map<String, ServiceModel> get serviceMap => _serviceMap;
+
+  String getServiceName(String serviceId) {
+    if (serviceId.isEmpty) return 'Dịch vụ';
+    return _serviceMap[serviceId]?.name ?? 'Dịch vụ';
+  }
+
   /// Danh sách 5 công việc sắp tới gần nhất
   List<BookingModel> get upcomingJobs {
     final now = DateTime.now();
@@ -114,6 +128,30 @@ class ProviderViewModel extends ChangeNotifier {
 
   // --- Các phương thức nghiệp vụ (Methods) ---
 
+  Future<void> _loadServicesForBookings(List<BookingModel> bookings) async {
+    final serviceIds = bookings
+        .map((b) => b.serviceId)
+        .where((id) => id.isNotEmpty)
+        .toSet();
+
+    if (serviceIds.isEmpty) {
+      _serviceMap = {};
+      return;
+    }
+
+    final Map<String, ServiceModel> map = {};
+    await Future.wait(serviceIds.map((serviceId) async {
+      try {
+        final service = await _serviceRepo.getServiceById(serviceId);
+        map[serviceId] = service;
+      } catch (e) {
+        debugPrint('Lỗi tải dịch vụ $serviceId: $e');
+      }
+    }).toList());
+
+    _serviceMap = map;
+  }
+
   /// Tải dữ liệu ban đầu cho Dashboard
   Future<void> loadData() async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
@@ -128,6 +166,8 @@ class ProviderViewModel extends ChangeNotifier {
       // Lấy thông tin Provider và danh sách Booking song song hoặc tuần tự
       final provider = await _providerRepo.getProviderById(userId);
       final bookings = await _bookingRepo.getBookingProviderId(userId);
+
+      await _loadServicesForBookings(bookings);
 
       _provider = provider;
       _isOnline = provider?.isOnline ?? false;

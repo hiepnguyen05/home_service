@@ -18,17 +18,22 @@ class FirebaseAuthService {
     try {
       print('Đang đăng ký tài khoản Firebase...');
 
-      // Tạo tài khoản Firebase Auth
-      final UserCredential userCredential = await _auth
-          .createUserWithEmailAndPassword(email: email, password: password);
+      // Tạo tài khoản Firebase Auth và lấy FCM Token (Chạy song song)
+      final results = await Future.wait([
+        _auth.createUserWithEmailAndPassword(email: email, password: password),
+        NotificationService.getToken(),
+      ]);
+
+      final UserCredential userCredential = results[0] as UserCredential;
+      final fcmToken = results[1] as String?;
 
       final User? firebaseUser = userCredential.user;
       if (firebaseUser == null) {
         throw Exception('Không thể tạo tài khoản');
       }
 
-      // Cập nhật display name
-      await firebaseUser.updateDisplayName(fullName);
+      // Cập nhật display name ngầm (Fire and forget)
+      firebaseUser.updateDisplayName(fullName).catchError((_) {});
 
       // Tạo user document trong Firestore
       var userModel = UserModel(
@@ -45,8 +50,6 @@ class FirebaseAuthService {
         updatedAt: DateTime.now(),
       );
 
-      // Lấy FCM Token
-      final fcmToken = await NotificationService.getToken();
       userModel = userModel.copyWith(fcmToken: fcmToken);
 
       // Lưu thông tin user vào Firestore
@@ -85,8 +88,14 @@ class FirebaseAuthService {
     try {
       print('Đang đăng nhập Firebase...');
 
-      final UserCredential userCredential = await _auth
-          .signInWithEmailAndPassword(email: email, password: password);
+      // Gọi Auth API và lấy FCM Token song song
+      final results = await Future.wait([
+        _auth.signInWithEmailAndPassword(email: email, password: password),
+        NotificationService.getToken(),
+      ]);
+
+      final UserCredential userCredential = results[0] as UserCredential;
+      final fcmToken = results[1] as String?;
 
       final User? firebaseUser = userCredential.user;
       if (firebaseUser == null) {
@@ -118,13 +127,12 @@ class FirebaseAuthService {
             (userData['updated_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
       );
 
-      // Cập nhật FCM Token khi đăng nhập
-      final fcmToken = await NotificationService.getToken();
+      // Cập nhật FCM Token khi đăng nhập (Chạy ngầm - Fire and forget)
       if (fcmToken != null) {
-        await _firestore.collection('users').doc(firebaseUser.uid).update({
+        _firestore.collection('users').doc(firebaseUser.uid).update({
           'fcm_token': fcmToken,
           'updated_at': FieldValue.serverTimestamp(),
-        });
+        }).catchError((_) {});
       }
 
       print('Đăng nhập thành công: ${userModel.fullName}');

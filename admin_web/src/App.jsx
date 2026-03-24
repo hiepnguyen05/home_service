@@ -2,12 +2,12 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext'
 import PrivateRoute from './components/Auth/PrivateRoute'
 import AdminDashboard from './pages/Dashboard/AdminDashboard.jsx'
+import BookingManager from './pages/Bookings/BookingManager.jsx'
 import CustomerManager from './pages/Customers/CustomerManager.jsx'
 import ProviderManager from './pages/Providers/ProviderManager.jsx'
 import CategoriesManager from './pages/Categories/CategoriesManager.jsx'
 import ServiceManager from './pages/Services/ServiceManager.jsx'
 import SettingsManager from './pages/Settings/SettingsManager.jsx'
-import WorkerApplications from './pages/WorkerApplications/WorkerApplications.jsx'
 import AdminLogin from './pages/Login/AdminLogin.jsx'
 import AdminLayout from './layouts/AdminLayout'
 import './App.css'
@@ -27,9 +27,9 @@ function App() {
             </PrivateRoute>
           } />
 
-          <Route path="/customers" element={
+          <Route path="/orders" element={
             <PrivateRoute>
-              <AdminLayout title="Quản lý Khách hàng"><CustomerManager /></AdminLayout>
+              <AdminLayout title="Quản lý đơn đặt lịch"><BookingManager /></AdminLayout>
             </PrivateRoute>
           } />
 
@@ -39,9 +39,9 @@ function App() {
             </PrivateRoute>
           } />
 
-          <Route path="/applications" element={
+          <Route path="/customers" element={
             <PrivateRoute>
-              <AdminLayout title="Duyệt hồ sơ"><WorkerApplications /></AdminLayout>
+              <AdminLayout title="Quản lý Khách hàng"><CustomerManager /></AdminLayout>
             </PrivateRoute>
           } />
 
@@ -57,7 +57,7 @@ function App() {
             </PrivateRoute>
           } />
 
-          <Route path="/orders" element={
+          <Route path="/orders-old" element={
             <PrivateRoute>
               <AdminLayout title="Đơn hàng"><div>Trang Đơn hàng (Đang phát triển)</div></AdminLayout>
             </PrivateRoute>

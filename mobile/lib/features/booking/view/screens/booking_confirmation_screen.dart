@@ -15,8 +15,10 @@ import '../widgets/confirmation/section_title.dart';
 import 'booking_success_screen.dart';
 import '../widgets/common/booking_stepper.dart';
 import '../widgets/common/waiting_for_provider_dialog.dart'; // Import common dialog
+import '../../../../core/widgets/app_dialog.dart';
 import '../../../../core/constants/app_colors.dart'; // Added AppColors
 
+import '../../../../features/payment/data/models/payment_method.dart';
 import '../../../../features/payment/viewmodel/payment_viewmodel.dart';
 import '../../../../features/payment/view/screens/momo_payment_screen.dart';
 
@@ -129,6 +131,44 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
             } else {
               print("❌ [BookingScreen] Current booking is NULL!");
               _showErrorSnackBar("Lỗi: Không tìm thấy thông tin đơn hàng");
+            }
+          },
+          onProviderAccepted: () async {
+            if (!mounted) return;
+            if (_bookingViewModel.paymentMethod == PaymentMethod.cash) {
+              await showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (ctx) {
+                  return AppDialog(
+                    title: "Thợ đã xác nhận lịch",
+                    message:
+                        "Yêu cầu của bạn đã được thợ chấp nhận. Bạn sẽ nhận được thông báo trước khi công việc bắt đầu.",
+                    type: DialogType.success,
+                    primaryButtonText: "Tuyệt vời",
+                    onPrimaryPressed: () {
+                      Navigator.of(ctx).pop();
+                    },
+                  );
+                },
+              );
+              if (!mounted) return;
+              _navigateToSuccess(context, bookingId);
+            } else {
+              await showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (ctx) => AppDialog(
+                  title: "Thợ đã đồng ý",
+                  message:
+                      "Thợ đã nhận yêu cầu và đang đợi bạn hoàn thành thanh toán MoMo. Thông báo tiếp theo sẽ gửi khi giao dịch xác nhận.",
+                  type: DialogType.info,
+                  primaryButtonText: "Đóng",
+                  onPrimaryPressed: () {
+                    Navigator.of(ctx).pop();
+                  },
+                ),
+              );
             }
           },
           onFailure: (reason) {

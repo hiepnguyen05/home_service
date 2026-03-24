@@ -6,7 +6,7 @@ const Sidebar = () => {
     // ... nav items ...
     const mainNavItems = [
         { path: '/dashboard', label: 'Bảng điều khiển', icon: 'dashboard' },
-        { path: '/applications', label: 'Duyệt hồ sơ', icon: 'how_to_reg' },
+        { path: '/orders', label: 'Quản lý đơn đặt lịch', icon: 'event_note' },
         { path: '/customers', label: 'Khách hàng', icon: 'group' },
         { path: '/providers', label: 'Quản lý Thợ', icon: 'engineering' },
         { path: '/categories', label: 'Danh mục', icon: 'category' },

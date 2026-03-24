@@ -7,12 +7,14 @@ import '../../screens/provider_work_screen.dart';
 
 class UpcomingJobsList extends StatelessWidget {
   final List<BookingModel> jobs;
-  final Function(BookingModel)? onCompleteJob; // NEW
+  final Function(BookingModel)? onNavigateJob;
+  final String Function(String) serviceNameResolver;
 
   const UpcomingJobsList({
     super.key,
     required this.jobs,
-    this.onCompleteJob, // NEW
+    required this.serviceNameResolver,
+    this.onNavigateJob,
   });
 
   @override
@@ -44,32 +46,34 @@ class UpcomingJobsList extends StatelessWidget {
               ),
             )
           else
-            ...jobs.map((job) => JobItemCard(
-                  booking: job,
-                  onTap: () {
-                    if (job.status == BookingStatus.confirmed) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              ProviderCheckInScreen(booking: job),
-                        ),
-                      );
-                    } else if (job.status == BookingStatus.arrived ||
-                        job.status == BookingStatus.processing ||
-                        job.status == BookingStatus.paused) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              ProviderWorkScreen(booking: job),
-                        ),
-                      );
-                    }
-                  },
-                  onComplete:
-                      onCompleteJob != null ? () => onCompleteJob!(job) : null,
-                )),
+            ...jobs.map((job) {
+              final serviceName = serviceNameResolver(job.serviceId);
+              return JobItemCard(
+                booking: job,
+                serviceName: serviceName,
+                onTap: () {
+                  if (job.status == BookingStatus.confirmed) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProviderCheckInScreen(booking: job),
+                      ),
+                    );
+                  } else if (job.status == BookingStatus.arrived ||
+                      job.status == BookingStatus.processing ||
+                      job.status == BookingStatus.paused) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProviderWorkScreen(booking: job),
+                      ),
+                    );
+                  }
+                },
+                onNavigate:
+                    onNavigateJob != null ? () => onNavigateJob!(job) : null,
+              );
+            }),
         ],
       ),
     );

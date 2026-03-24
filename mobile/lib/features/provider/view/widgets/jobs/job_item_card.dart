@@ -6,13 +6,15 @@ import 'package:mobile/features/booking/data/models/booking_model.dart';
 class JobItemCard extends StatelessWidget {
   final BookingModel booking;
   final VoidCallback onTap;
-  final VoidCallback? onComplete; // NEW
+  final VoidCallback? onNavigate; // NEW
+  final String serviceName;
 
   const JobItemCard({
     super.key,
     required this.booking,
     required this.onTap,
-    this.onComplete,
+    this.onNavigate,
+    required this.serviceName,
   });
 
   String _formatTime(DateTime time) {
@@ -63,8 +65,7 @@ class JobItemCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      booking
-                          .serviceId, // Tạm thời hiển thị ID hoặc map sang tên
+                      serviceName.isNotEmpty ? serviceName : 'Dịch vụ',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -159,15 +160,13 @@ class JobItemCard extends StatelessWidget {
                       ),
                     ),
 
-                    // Complete Button (NEW)
-                    if (booking.status == BookingStatus.confirmed &&
-                        onComplete != null)
+                    if (onNavigate != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 8.0),
                         child: SizedBox(
                           height: 32,
                           child: ElevatedButton(
-                            onPressed: onComplete,
+                            onPressed: onNavigate,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
                               foregroundColor: Colors.white,
@@ -175,7 +174,7 @@ class JobItemCard extends StatelessWidget {
                                   const EdgeInsets.symmetric(horizontal: 12),
                               textStyle: const TextStyle(fontSize: 12),
                             ),
-                            child: const Text("Hoàn thành"),
+                            child: const Text("Điều hướng"),
                           ),
                         ),
                       ),
@@ -215,7 +214,9 @@ class JobItemCard extends StatelessWidget {
       case BookingStatus.pending:
         return Colors.orange;
       case BookingStatus.accepted:
-        return Colors.blue;
+        return AppColors.primary;
+      case BookingStatus.waitingPayment:
+        return Colors.orangeAccent;
       case BookingStatus.confirmed:
         return Colors.green;
       case BookingStatus.completed:
@@ -232,7 +233,9 @@ class JobItemCard extends StatelessWidget {
       case BookingStatus.pending:
         return "Chờ xác nhận";
       case BookingStatus.accepted:
-        return "Chờ khách chốt";
+        return "Đơn đã nhận";
+      case BookingStatus.waitingPayment:
+        return "Chờ khách thanh toán";
       case BookingStatus.confirmed:
         return "Đã nhận việc";
       case BookingStatus.completed:

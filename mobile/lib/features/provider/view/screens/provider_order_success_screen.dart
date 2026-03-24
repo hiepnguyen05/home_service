@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 // import 'package:mobile/core/constants/app_colors.dart'; // Unused
 import 'package:mobile/features/booking/data/models/booking_model.dart';
 import 'package:mobile/features/booking/data/repositories/booking_repository.dart';
+import 'package:mobile/features/auth/data/repositories/auth_repository.dart'; // Thêm repo lấy thông tin KH
 import 'provider_check_in_screen.dart'; // Added
 import 'package:mobile/features/chat/view/screens/chat_screen.dart'; // Added
 
@@ -20,11 +21,66 @@ class ProviderOrderSuccessScreen extends StatefulWidget {
 class _ProviderOrderSuccessScreenState extends State<ProviderOrderSuccessScreen> {
   StreamSubscription? _statusSubscription;
   bool _isCancellationDialogShowing = false;
+  bool _isLoadingCustomer = true;
+
+  String _customerName = "Khách hàng";
+  String? _customerAvatar;
+  String? _customerPhone;
 
   @override
   void initState() {
     super.initState();
     _listenToStatusChanges();
+    _fetchCustomerInfo();
+  }
+
+  Future<void> _fetchCustomerInfo() async {
+    try {
+      final user = await AuthRepository().getUserById(widget.booking.customerId);
+      if (mounted) {
+        setState(() {
+          if (user != null) {
+            _customerName = user.fullName.isNotEmpty ? user.fullName : "Khách hàng";
+            _customerAvatar = user.avatarUrl;
+            _customerPhone = user.phone;
+          }
+          _isLoadingCustomer = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Lỗi tải thông tin khách hàng: $e");
+      if (mounted) {
+        setState(() {
+          _isLoadingCustomer = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _callCustomer() async {
+    if (_customerPhone == null || _customerPhone!.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Chưa có số điện thoại khách hàng")),
+        );
+      }
+      return;
+    }
+    final Uri launchUri = Uri(scheme: 'tel', path: _customerPhone);
+    try {
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
+      } else {
+        throw 'Cannot launch';
+      }
+    } catch (e) {
+      debugPrint("Lỗi gọi điện: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Không thể thực hiện cuộc gọi")),
+        );
+      }
+    }
   }
 
   void _listenToStatusChanges() {
@@ -109,8 +165,8 @@ class _ProviderOrderSuccessScreenState extends State<ProviderOrderSuccessScreen>
         builder: (context) => ChatScreen(
           bookingId: widget.booking.id,
           targetUserId: widget.booking.customerId, // Truyền ID khách để gửi thông báo
-          otherUserName: "Khách hàng", // TODO: Lấy tên thật từ User repository
-          otherUserAvatar: null,
+          otherUserName: _customerName, // Tên thật từ User repository
+          otherUserAvatar: _customerAvatar,
         ),
       ),
     );
@@ -312,15 +368,36 @@ class _ProviderOrderSuccessScreenState extends State<ProviderOrderSuccessScreen>
                         ),
                         const SizedBox(height: 16),
 
-                        // Chat Button
-                        _buildButton(
-                          onPressed: () => _openChat(context),
-                          icon: Icons.chat_bubble_outline,
-                          label: "Chat với khách hàng",
-                          backgroundColor: Colors.white,
-                          textColor: const Color(0xFF1F2937),
-                          borderColor: const Color(0xFFE2E8F0),
-                        ),
+                        // Chờ tải xong thông tin khách hàng mới hiện các nút phụ
+                        _isLoadingCustomer
+                            ? const Padding(
+                                padding: EdgeInsets.all(24.0),
+                                child: Center(child: CircularProgressIndicator(color: Color(0xFF4CAF50))),
+                              )
+                            : Column(
+                                children: [
+                                  // Nút Gọi khách hàng
+                                  _buildButton(
+                                    onPressed: () => _callCustomer(),
+                                    icon: Icons.phone_in_talk,
+                                    label: "Gọi khách hàng",
+                                    backgroundColor: Colors.white,
+                                    textColor: const Color(0xFF4CAF50),
+                                    borderColor: const Color(0xFF4CAF50),
+                                  ),
+                                  const SizedBox(height: 16),
+
+                                  // Chat Button
+                                  _buildButton(
+                                    onPressed: () => _openChat(context),
+                                    icon: Icons.chat_bubble_outline,
+                                    label: "Chat với khách hàng",
+                                    backgroundColor: Colors.white,
+                                    textColor: const Color(0xFF1F2937),
+                                    borderColor: const Color(0xFFE2E8F0),
+                                  ),
+                                ],
+                              ),
                       ],
                     ),
                   ),

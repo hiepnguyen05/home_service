@@ -13,16 +13,17 @@ class AuthRepository {
       password: password,
     );
 
-    // 2. Lưu cache local
-    await StorageService.saveUserInfo(userModel.toJson());
+    // 2. Lưu cache local (Chạy ngầm - Fire and forget)
+    StorageService.saveUserInfo(userModel.toJson()).catchError((_) {});
 
-    // 3. Lưu token (nếu cần thiết, tuỳ chiến lược token)
+    // 3. Lưu token (Chạy ngầm - Fire and forget)
     final firebaseUser = FirebaseAuthService.getCurrentFirebaseUser();
     if (firebaseUser != null) {
-      final token = await firebaseUser.getIdToken();
-      if (token != null) {
-        await StorageService.saveAuthToken(token);
-      }
+      firebaseUser.getIdToken().then((token) {
+        if (token != null) {
+          StorageService.saveAuthToken(token);
+        }
+      }).catchError((_) {});
     }
 
     return userModel;
@@ -42,16 +43,17 @@ class AuthRepository {
       password: password,
     );
 
-    // Lưu cache
-    await StorageService.saveUserInfo(userModel.toJson());
+    // Lưu cache (Chạy ngầm - Fire and forget)
+    StorageService.saveUserInfo(userModel.toJson()).catchError((_) {});
 
-    // Lưu token
+    // Lưu token (Chạy ngầm - Fire and forget)
     final firebaseUser = FirebaseAuthService.getCurrentFirebaseUser();
     if (firebaseUser != null) {
-      final token = await firebaseUser.getIdToken();
-      if (token != null) {
-        await StorageService.saveAuthToken(token);
-      }
+      firebaseUser.getIdToken().then((token) {
+        if (token != null) {
+          StorageService.saveAuthToken(token);
+        }
+      }).catchError((_) {});
     }
 
     return userModel;
@@ -127,10 +129,10 @@ class AuthRepository {
           id: uid.hashCode,
           uid: uid,
           code: userData['code'],
-          fullName: userData['full_name'] ?? '',
+          fullName: userData['full_name'] ?? userData['fullName'] ?? '',
           phone: userData['phone'] ?? '',
           email: userData['email'] ?? '',
-          avatarUrl: userData['avatar_url'],
+          avatarUrl: userData['avatar_url'] ?? userData['avatarUrl'],
           role: userData['role'] ?? 'customer',
           status: userData['status'] ?? 'active',
           createdAt:

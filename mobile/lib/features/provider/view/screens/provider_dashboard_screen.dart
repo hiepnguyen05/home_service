@@ -166,6 +166,12 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
             // ViewModel sẽ được gọi để refresh data sau đó.
 
             final BookingRepository bookingRepo = BookingRepository();
+            final bool isImmediate = _isImmediateBooking(booking);
+
+            if (!isImmediate) {
+              await _handleFutureBookingAcceptance(booking, bookingRepo);
+              return;
+            }
 
             if (booking.priceUnit == 'giờ') {
               // Tính giờ -> Đã nhận việc
@@ -249,67 +255,121 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
     });
   }
 
-  /// Hiển thị Dialog hoàn thành công việc
-  void _showCompleteJobDialog(BookingModel booking) {
-    // Controller nhập liệu
-    final TextEditingController _inputController = TextEditingController();
-    String label = "Số lượng thực tế";
-    String suffix = booking.priceUnit;
+  bool _isImmediateBooking(BookingModel booking) {
+    final diffMinutes = booking.scheduleAt.difference(DateTime.now()).inMinutes;
+    return diffMinutes >= -10 && diffMinutes <= 30;
+  }
 
-    if (booking.priceUnit == 'giờ') {
-      label = "Số giờ làm việc";
+  Future<void> _handleFutureBookingAcceptance(
+      BookingModel booking, BookingRepository bookingRepo) async {
+    final bool needsPayment = _isOnlinePayment(booking.paymentMethod);
+    final String nextStatus = needsPayment
+        ? BookingStatus.waitingPayment
+        : BookingStatus.accepted;
+    await bookingRepo.updateBookingStatus(booking.id, nextStatus);
+    if (!mounted) return;
+    await context.read<ProviderViewModel>().refreshData();
+    if (needsPayment) {
+      await _showPaymentWaitDialog(booking);
+    } else {
+      _showFutureBookingAcceptedDialog(booking);
     }
+  }
+
+  bool _isOnlinePayment(String paymentMethod) {
+    final normalized = paymentMethod.toLowerCase();
+    return normalized.contains('ewallet') ||
+        normalized.contains('online') ||
+        normalized.contains('e-wallet') ||
+        normalized.contains('wallet') ||
+        normalized.contains('momo');
+  }
+
+  void _showFutureBookingAcceptedDialog(BookingModel booking) {
+    final diff = booking.scheduleAt.difference(DateTime.now());
+    final formattedTime =
+        DateFormat('EEEE, d MMMM yyyy, HH:mm', 'vi').format(booking.scheduleAt);
+    final countdown = _formatCountdown(diff);
 
     showDialog(
       context: context,
+      barrierDismissible: true,
       builder: (ctx) => AlertDialog(
-        title: const Text("Hoàn thành công việc"),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Nhận lịch thành công"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Text("Còn $countdown để đến công việc."),
+            const SizedBox(height: 8),
             Text(
-                "Đơn giá: ${NumberFormat.currency(locale: 'vi', symbol: 'đ').format(booking.totalPrice / (booking.quantity > 0 ? booking.quantity : 1))} / ${booking.priceUnit}"),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _inputController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                labelText: label,
-                suffixText: suffix,
-                border: const OutlineInputBorder(),
-              ),
+              formattedTime,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              booking.address,
+              style: const TextStyle(color: Colors.grey),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text("Hủy")),
-          ElevatedButton(
-            onPressed: () {
-              final val = double.tryParse(_inputController.text);
-              if (val == null || val <= 0) {
-                DialogUtils.showError(context,
-                    title: "Lỗi", message: "Vui lòng nhập số hợp lệ");
-                return;
-              }
-              Navigator.pop(ctx);
-
-              // Gọi ViewModel xử lý logic hoàn thành
-              DialogUtils.showLoading(context, message: "Đang cập nhật...");
-              context.read<ProviderViewModel>().handleJobCompletion(booking, val, onSuccess: (msg) {
-                DialogUtils.hideLoading(
-                    context); // Dùng context của Screen vì dialog loading dùng context này
-                DialogUtils.showSuccess(context,
-                    title: "Thành công", message: msg);
-              }, onError: (msg) {
-                DialogUtils.hideLoading(context);
-                DialogUtils.showError(context, title: "Lỗi", message: msg);
-              });
-            },
-            child: const Text("Xác nhận"),
-          )
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Đóng"),
+          ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _showPaymentWaitDialog(BookingModel booking) async {
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => ProviderWaitingPaymentDialog(
+        bookingId: booking.id,
+        onPaymentSuccess: () async {
+          Navigator.pop(ctx);
+          if (!mounted) return;
+          _showFutureBookingAcceptedDialog(booking);
+        },
+        onPaymentFailed: (reason) {
+          Navigator.pop(ctx);
+          if (!mounted) return;
+          DialogUtils.showError(
+            context,
+            title: "Thanh toán thất bại",
+            message: reason,
+          );
+        },
+      ),
+    );
+  }
+
+  String _formatCountdown(Duration duration) {
+    if (duration <= Duration.zero) {
+      return "sắp tới";
+    }
+    final days = duration.inDays;
+    final hours = duration.inHours % 24;
+    final minutes = duration.inMinutes % 60;
+    final parts = <String>[];
+    if (days > 0) parts.add("$days ngày");
+    if (hours > 0) parts.add("$hours giờ");
+    if (minutes > 0) parts.add("$minutes phút");
+    if (parts.isEmpty) return "dưới 1 phút";
+    return parts.join(' ');
+  }
+
+  void _navigateToJob(BookingModel booking) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProviderOrderSuccessScreen(booking: booking),
       ),
     );
   }
@@ -455,7 +515,8 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                 const SizedBox(height: 16),
                 UpcomingJobsList(
                   jobs: vm.upcomingJobs,
-                  onCompleteJob: _showCompleteJobDialog,
+                  serviceNameResolver: vm.getServiceName,
+                  onNavigateJob: _navigateToJob,
                 ),
                 const SizedBox(height: 20),
               ],

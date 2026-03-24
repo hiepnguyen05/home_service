@@ -112,10 +112,28 @@ class BookingViewModel extends ChangeNotifier {
       // 3. Lọc theo service ID và TRÁNH ĐẶT CHÍNH MÌNH
       final currentUserId = FirebaseAuth.instance.currentUser?.uid;
       List<ProviderModel> filteredList = allProviders.where((p) {
+        // Chỉ lấy thợ đang mở nhận việc (Toàn cục)
+        if (!p.isOnline) return false;
+
         // Không cho phép thợ tự thấy và đặt chính mình
         if (p.id == currentUserId) return false;
         
-        return serviceId == null || p.serviceIds.contains(serviceId);
+        if (serviceId != null) {
+          // Lọc cơ bản theo mảng String IDs
+          if (!p.serviceIds.contains(serviceId)) return false;
+
+          // Lọc chuyên sâu: Kiểm tra chi tiết trạng thái Tạm Ngưng của riêng Dịch vụ này
+          if (p.services != null) {
+            try {
+              final serviceDetail = p.services!.firstWhere((s) => s.serviceId == serviceId);
+              if (!serviceDetail.isActive) return false; // Thợ đã tạm ngưng dịch vụ này
+            } catch (_) {
+              // Bỏ qua nếu cấu trúc dữ liệu cũ chưa có mảng services
+            }
+          }
+        }
+        
+        return true;
       }).toList();
 
       // 4. Lọc theo khoảng cách (20km)

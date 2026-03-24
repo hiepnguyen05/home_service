@@ -10,7 +10,8 @@ import '../widgets/workflow/workflow_job_card.dart';
 import '../widgets/workflow/workflow_timer.dart';
 import '../widgets/workflow/workflow_actions.dart';
 import 'provider_complete_job_screen.dart';
-import 'extra_cost_screen.dart'; // Add this
+import 'extra_cost_screen.dart';
+import '../../../../core/widgets/app_dialog.dart';
 
 class ProviderWorkScreen extends StatefulWidget {
   final BookingModel booking;
@@ -39,6 +40,7 @@ class _ProviderWorkScreenState extends State<ProviderWorkScreen> {
   String? _lastExtraCostStatus;
   bool _isExtraCostDialogShowing = false;
   StreamSubscription<BookingModel>? _bookingSubscription;
+  bool _isWaitingForCancelResponse = false;
 
   @override
   void initState() {
@@ -80,6 +82,12 @@ class _ProviderWorkScreenState extends State<ProviderWorkScreen> {
     if (needsUpdate && mounted) {
       setState(() {});
     }
+
+    // Kiểm tra xem có đang chờ phản hồi hủy đơn không
+    if (widget.booking.status == BookingStatus.cancelPending && 
+        widget.booking.cancelRequestedBy == widget.booking.providerId) {
+      _isWaitingForCancelResponse = true;
+    }
   }
 
   void _initTimerLogic() {
@@ -100,10 +108,21 @@ class _ProviderWorkScreenState extends State<ProviderWorkScreen> {
 
     if (booking.status == BookingStatus.processing && booking.lastStartedAt != null) {
       final elapsedSinceLastStart = DateTime.now().difference(booking.lastStartedAt!).inSeconds;
-      _currentSeconds = _lastSyncedSeconds + elapsedSinceLastStart;
+      final int calculatedSeconds = _lastSyncedSeconds + (elapsedSinceLastStart > 0 ? elapsedSinceLastStart : 0);
+      
+      // Để tránh đồng hồ bị nhảy lùi (do lệch clock server), 
+      // chỉ cập nhật nếu giá trị mới lớn hơn giá trị hiện tại hoặc có sự chênh lệch quá lớn (>5s)
+      if (calculatedSeconds > _currentSeconds || (calculatedSeconds - _currentSeconds).abs() > 5) {
+        _currentSeconds = calculatedSeconds;
+      }
     } else {
-      _currentSeconds = _lastSyncedSeconds;
+      // Khi paused hoặc arrived, chỉ sync nếu DB > current
+      if (_lastSyncedSeconds > _currentSeconds || (_lastSyncedSeconds - _currentSeconds).abs() > 5) {
+        _currentSeconds = _lastSyncedSeconds;
+      }
     }
+
+    if (_currentSeconds < 0) _currentSeconds = 0;
   }
 
   void _startTicker() {
@@ -135,32 +154,75 @@ class _ProviderWorkScreenState extends State<ProviderWorkScreen> {
     // Cập nhật timer local
     _updateLocalTimer(booking);
 
-    // Hiển thị dialog khi đơn bị hủy
+    // Kiểm tra trạng thái chờ phản hồi hủy đơn
+    if (booking.status == BookingStatus.cancelPending && 
+        booking.cancelRequestedBy == booking.providerId) {
+      _isWaitingForCancelResponse = true;
+    }
+
+    // Hiển thị dialog khi khách hàng TỪ CHỐI hủy đơn
+    if (_isWaitingForCancelResponse && 
+        booking.status != BookingStatus.cancelPending && 
+        booking.status != BookingStatus.cancelled &&
+        booking.cancelRequestedBy == null) {
+      _isWaitingForCancelResponse = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        DialogUtils.showError(
+          context,
+          title: "Yêu cầu bị từ chối",
+          message: "Khách hàng đã từ chối yêu cầu hủy đơn của bạn. Vui lòng tiếp tục thực hiện công việc.",
+          buttonText: "Đã hiểu",
+        );
+      });
+    }
+
+    // Hiển thị dialog khi đơn bị hủy (Khách đồng ý hoặc khách tự hủy)
     if (booking.status == BookingStatus.cancelled &&
         !_isCancellationDialogShowing) {
       _isCancellationDialogShowing = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         _stopTicker();
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            title: const Text("Thông báo"),
-            content: const Text("Đơn hàng này đã bị hủy."),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context); // Close dialog
-                  Navigator.pop(context); // Exit WorkScreen
-                },
-                child: const Text("Đóng"),
-              ),
-            ],
-          ),
-        ).then((_) {
-          _isCancellationDialogShowing = false;
-        });
+
+        // Kiểm tra xem ai là người yêu cầu hủy
+        final isProviderRequested = booking.cancelRequestedBy == booking.providerId;
+
+        if (isProviderRequested) {
+          DialogUtils.showSuccess(
+            context,
+            title: "Hủy đơn thành công",
+            message: "Khách hàng đã đồng ý với yêu cầu hủy đơn của bạn. Đơn hàng đã được đóng.",
+            buttonText: "Đóng",
+            onPressed: () {
+              Navigator.pop(context); // Đóng dialog
+              Navigator.of(context).popUntil((route) => route.isFirst); // Về Dashboard
+            },
+          ).then((_) {
+            _isCancellationDialogShowing = false;
+          });
+        } else {
+          // Trường hợp khách hàng tự ý hủy hoặc lý do khác
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              title: const Text("Thông báo"),
+              content: const Text("Đơn hàng này đã bị hủy bởi khách hàng."),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    Navigator.of(context).popUntil((route) => route.isFirst); // Về Dashboard
+                  },
+                  child: const Text("Đóng"),
+                ),
+              ],
+            ),
+          ).then((_) {
+            _isCancellationDialogShowing = false;
+          });
+        }
       });
     }
 
@@ -185,9 +247,10 @@ class _ProviderWorkScreenState extends State<ProviderWorkScreen> {
   Future<void> _handlePause(BookingModel booking) async {
     setState(() => _isLoading = true);
     try {
-      // Calculate seconds to add to total
-      final lastStart = booking.lastStartedAt ?? DateTime.now();
-      final sessionSeconds = DateTime.now().difference(lastStart).inSeconds;
+      // Tính thời gian của phiên làm việc dựa trên đồng hồ hiển thị (local) thay vì lấy khác biệt server
+      // Tránh được lỗi "nhảy lùi 1 giây" do sai khác đồng hồ thiết bị và máy chủ
+      int sessionSeconds = _currentSeconds - _lastSyncedSeconds;
+      if (sessionSeconds < 0) sessionSeconds = 0;
 
       await BookingRepository().pauseWorking(booking.id, sessionSeconds);
       _stopTicker();
@@ -201,10 +264,9 @@ class _ProviderWorkScreenState extends State<ProviderWorkScreen> {
   }
 
   Future<void> _handleComplete(BookingModel booking) async {
-    int sessionSeconds = 0;
-    if (booking.status == BookingStatus.processing && booking.lastStartedAt != null) {
-      sessionSeconds = DateTime.now().difference(booking.lastStartedAt!).inSeconds;
-    }
+    // Tương tự, dùng thời gian hiển thị trừ đi thời gian đã sync để tránh lỗi nhảy lùi
+    int sessionSeconds = _currentSeconds - _lastSyncedSeconds;
+    if (sessionSeconds < 0) sessionSeconds = 0;
     
     debugPrint("--- DEBUG: WorkScreen Final Session Calculation ---");
     debugPrint("Last Started At: ${booking.lastStartedAt}");
@@ -369,6 +431,7 @@ class _ProviderWorkScreenState extends State<ProviderWorkScreen> {
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
+                          _isWaitingForCancelResponse = true;
                         }
                       } catch (e) {
                         debugPrint("❌ [REPO] Lỗi gửi yêu cầu hủy: $e");

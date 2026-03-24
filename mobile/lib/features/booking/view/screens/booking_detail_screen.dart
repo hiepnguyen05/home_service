@@ -25,9 +25,17 @@ class BookingDetailScreen extends StatelessWidget {
     final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
 
-    final double basePrice = booking.totalPrice;
-    final double extraCost = booking.extraCostAmount ?? 0.0;
-    final double totalPaid = basePrice + extraCost;
+    final bool isExtraCostApproved = booking.extraCostStatus == 'approved';
+    final double extraCost = isExtraCostApproved ? (booking.extraCostAmount ?? 0.0) : 0.0;
+    
+    // Nếu khách đã duyệt, totalPrice trên Firestore đã GỘP CẢ extraCost
+    // Do đó basePrice = totalPrice - extraCost
+    double basePrice = booking.totalPrice;
+    if (isExtraCostApproved) {
+      basePrice = booking.totalPrice - extraCost;
+    }
+
+    final double totalPaid = basePrice + extraCost; // tương đương booking.totalPrice
 
     final isHourly = booking.totalWorkingSeconds > 0;
 
